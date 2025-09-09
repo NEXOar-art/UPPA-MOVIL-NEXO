@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UppA: Red Urbana</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Inter:wght@400;500;600;700&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <!-- Heatmap.js & Leaflet-Heat Plugin -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/heatmap.js/2.0.2/heatmap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
+  <style>
+    :root {
+      /* Default theme is dark */
+      --ps-blue: #00bfff; /* DeepSkyBlue */
+      --ps-cyan: #00ffff;
+      --ps-magenta: #ff00ff;
+      --ps-lime: #32cd32;
+      --ps-glow: rgba(0, 191, 255, 0.8);
+      --ps-glow-soft: rgba(0, 191, 255, 0.4);
+      --ps-dark-bg: #030613;
+      --ps-panel-bg: rgba(10, 20, 45, 0.8);
+      --ps-border: rgba(0, 191, 255, 0.3);
+      --ps-text: #e0e8f0;
+      --ps-text-dim: #8c9bb6;
+    }
+
+    /* Light Theme */
+    body.theme-light {
+      --ps-blue: #007bff;
+      --ps-cyan: #17a2b8;
+      --ps-magenta: #e83e8c;
+      --ps-lime: #28a745;
+      --ps-glow: rgba(0, 123, 255, 0.6);
+      --ps-glow-soft: rgba(0, 123, 255, 0.3);
+      --ps-dark-bg: #f4f7fa;
+      --ps-panel-bg: rgba(255, 255, 255, 0.8);
+      --ps-border: rgba(0, 0, 0, 0.1);
+      --ps-text: #212529;
+      --ps-text-dim: #6c757d;
+    }
+    body.theme-light .ps-card {
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1), inset 0 0 0 1px var(--ps-border);
+    }
+    body.theme-light .ps-button {
+      background: rgba(230, 238, 245, 0.5);
+      border: 1px solid var(--ps-border);
+      color: var(--ps-text);
+      text-shadow: none;
+    }
+    body.theme-light .ps-button:hover {
+        color: #000;
+        border-color: var(--ps-blue);
+        background: rgba(0, 123, 255, 0.1);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1), 0 0 10px var(--ps-glow-soft);
+        text-shadow: none;
+    }
+    body.theme-light .ps-input {
+      background-color: rgba(255,255,255,0.5);
+      border: 1px solid var(--ps-border);
+      color: var(--ps-text);
+    }
+    body.theme-light .leaflet-popup-content-wrapper, body.theme-light .leaflet-popup-tip {
+        background: var(--ps-panel-bg);
+        color: var(--ps-text);
+        border: 1px solid var(--ps-border);
+    }
+    body.theme-light .leaflet-container a.leaflet-popup-close-button { color: var(--ps-text-dim); }
+
+    /* High Contrast Theme */
+    body.theme-high-contrast {
+      --ps-blue: #00ffff;
+      --ps-cyan: #00ffff;
+      --ps-magenta: #ff00ff;
+      --ps-lime: #39ff14;
+      --ps-glow: #00ffff;
+      --ps-glow-soft: #00ffff;
+      --ps-dark-bg: #000000;
+      --ps-panel-bg: rgba(0, 0, 0, 0.8);
+      --ps-border: #ffff00;
+      --ps-text: #ffffff;
+      --ps-text-dim: #dddddd;
+    }
+    body.theme-high-contrast .ps-card, 
+    body.theme-high-contrast .ps-button, 
+    body.theme-high-contrast .ps-input,
+    body.theme-high-contrast .leaflet-popup-content-wrapper {
+        border-width: 2px;
+        border-color: #ffff00;
+        background: #000;
+        color: #fff;
+    }
+    body.theme-high-contrast .ps-button:hover {
+        background: #ffff00;
+        color: #000;
+        text-shadow: none;
+    }
+    body.theme-high-contrast h1, body.theme-high-contrast h2, body.theme-high-contrast h3,
+    body.theme-high-contrast .font-audiowide, body.theme-high-contrast .text-cyan-300 {
+        text-shadow: none;
+        color: #ffff00;
+    }
+    body.theme-high-contrast .preloader-icon {
+        color: #ffff00;
+        filter: none;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--ps-dark-bg);
+      color: var(--ps-text);
+      overflow: hidden;
+      background-image: radial-gradient(rgba(0, 153, 255, 0.08) 1px, transparent 1px);
+      background-size: 1.5rem 1.5rem;
+      font-size: 1rem; /* Controlled by root font-size */
+    }
+    h1, h2, h3, .font-orbitron, .font-audiowide {
+      font-family: 'Orbitron', sans-serif;
+      text-shadow: 0 0 8px var(--ps-glow-soft);
+      letter-spacing: 0.05em;
+    }
+    .font-audiowide {
+        font-family: 'Audiowide', sans-serif;
+    }
+    
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--ps-blue);
+      border-radius: 4px;
+      border: 1px solid #0f172a;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #00bfff;
+      box-shadow: 0 0 10px var(--ps-glow);
+    }
+
+    #root {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      position: relative;
+    }
+    .main-layout {
+      position: relative;
+      flex-grow: 1;
+      display: flex; /* Changed from grid to flex */
+      gap: 1.5rem;
+      padding: 1.5rem;
+      overflow: hidden;
+    }
+
+    .control-deck {
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      gap: 1.5rem;
+    }
+
+    .interactive-display-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      position: relative;
+    }
+    
+    .ps-card {
+        background: var(--ps-panel-bg);
+        backdrop-filter: blur(12px) saturate(150%);
+        -webkit-backdrop-filter: blur(12px) saturate(150%);
+        border: 1px solid var(--ps-border);
+        border-radius: 12px;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.5), inset 0 0 0 1px var(--ps-border), 0 0 10px var(--ps-glow-soft) inset;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+    .ps-card::before, .ps-card::after {
+        content: '';
+        position: absolute;
+        width: 15px;
+        height: 15px;
+        border-color: var(--ps-cyan);
+        border-style: solid;
+        transition: all 0.3s ease;
+        opacity: 0.7;
+    }
+    .ps-card::before {
+        top: -1px;
+        left: -1px;
+        border-width: 2px 0 0 2px;
+        border-top-left-radius: 12px;
+    }
+    .ps-card::after {
+        bottom: -1px;
+        right: -1px;
+        border-width: 0 2px 2px 0;
+        border-bottom-right-radius: 12px;
+    }
+    
+    .ps-card:hover {
+        border-color: var(--ps-glow);
+        box-shadow: 0 0 30px rgba(0,0,0,0.4), 0 0 15px var(--ps-glow-soft), inset 0 0 0 1px var(--ps-border);
+        filter: drop-shadow(0 0 8px var(--ps-glow-soft));
+    }
+    .ps-card:hover::before { transform: translate(-4px, -4px); opacity: 1; }
+    .ps-card:hover::after { transform: translate(4px, 4px); opacity: 1; }
+
+    
+    .ps-button {
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid var(--ps-border);
+      border-radius: 8px;
+      color: var(--ps-text);
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 500;
+      font-size: 0.8rem;
+      letter-spacing: 0.05em;
+      padding: 0.75rem 1rem;
+      transition: all 0.2s ease-in-out;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.05);
+      text-shadow: 0 0 4px var(--ps-glow-soft);
+    }
+    .ps-button:hover {
+      color: #fff;
+      border-color: var(--ps-cyan);
+      background: rgba(0, 255, 255, 0.1);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3), 0 0 10px var(--ps-glow-soft);
+      transform: translateY(-2px);
+      text-shadow: 0 0 8px var(--ps-cyan);
+    }
+    .ps-button.active, .ps-button:active {
+      background: rgba(0, 191, 255, 0.2);
+      border-color: var(--ps-blue);
+      box-shadow: inset 0 0 10px var(--ps-glow-soft);
+      transform: translateY(0);
+    }
+     .ps-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: translateY(0);
+      background: rgba(15, 23, 42, 0.3);
+      border-color: var(--ps-border);
+       box-shadow: none;
+       text-shadow: none;
+    }
+
+    .ps-button-glow-effect {
+      border-color: var(--ps-cyan);
+      color: var(--ps-cyan);
+      animation: pulse-glow-button 1.5s infinite alternate;
+    }
+
+    @keyframes pulse-glow-button {
+        from {
+            box-shadow: 0 0 5px var(--ps-glow-soft), inset 0 0 5px var(--ps-glow-soft);
+            filter: drop-shadow(0 0 3px var(--ps-cyan));
+        }
+        to {
+            box-shadow: 0 0 12px var(--ps-glow), inset 0 0 8px var(--ps-glow-soft);
+            filter: drop-shadow(0 0 7px var(--ps-cyan));
+        }
+    }
+
+
+    .ps-input {
+      background-color: rgba(0,0,0,0.3);
+      border: 1px solid var(--ps-border);
+      color: var(--ps-text);
+      border-radius: 8px;
+      padding: 0.75rem;
+      transition: all 0.2s ease;
+      font-family: 'Inter', sans-serif;
+    }
+    .ps-input::placeholder {
+      color: var(--ps-text-dim);
+      font-family: 'Inter', sans-serif;
+      opacity: 0.7;
+    }
+    .ps-input:focus {
+      outline: none;
+      border-color: var(--ps-cyan);
+      box-shadow: 0 0 10px var(--ps-glow-soft);
+      background-color: rgba(0,0,0,0.2);
+    }
+
+    .scene {
+      width: 250px;
+      height: 150px;
+      perspective: 1000px;
+    }
+
+    .vehicle {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 1s cubic-bezier(0.25, 1, 0.5, 1);
+      animation: slow-spin 25s linear infinite;
+    }
+    
+    @keyframes slow-spin {
+      from { transform: rotateY(0deg); }
+      to { transform: rotateY(360deg); }
+    }
+
+    .vehicle-face {
+      position: absolute;
+      backface-visibility: hidden;
+      color: var(--ps-cyan);
+      text-shadow: 0 0 6px var(--ps-cyan);
+    }
+    .vehicle-face svg {
+      width: 100%;
+      height: 100%;
+      stroke: currentColor;
+      stroke-width: 0.4;
+      fill: none;
+      filter: drop-shadow(0 0 4px var(--ps-cyan));
+    }
+    .vehicle-face.fill {
+      fill: rgba(0, 255, 255, 0.1);
+    }
+    
+    .pac-container {
+      background-color: var(--ps-panel-bg) !important;
+      backdrop-filter: blur(10px) !important;
+      border-radius: 8px !important;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5) !important;
+      border: 1px solid var(--ps-border) !important;
+      z-index: 1050 !important;
+    }
+    .pac-item {
+      padding: 10px 15px !important;
+      font-size: 14px !important;
+      font-family: 'Inter', sans-serif !important;
+      color: var(--ps-text) !important;
+      cursor: pointer !important;
+      border-top: 1px solid var(--ps-border) !important;
+    }
+    .pac-item:first-child {
+      border-top: none !important;
+    }
+    .pac-item:hover {
+      background-color: rgba(0, 191, 255, 0.2) !important;
+    }
+    .pac-item-query {
+      font-weight: 600 !important;
+      color: var(--ps-blue) !important;
+    }
+    .pac-matched {
+      font-weight: 600 !important;
+      color: #fff !important;
+    }
+
+    .rank-glow {
+      color: var(--ps-cyan); /* Default to cyan */
+      filter: drop-shadow(0 0 6px var(--ps-cyan));
+      -webkit-filter: drop-shadow(0 0 6px var(--ps-cyan));
+      animation: pulse-glow 2s infinite alternate;
+    }
+    .text-yellow-400.rank-glow {
+        color: #facc15; /* yellow-400 */
+    }
+    .text-amber-400.rank-glow {
+        color: #fbbf24; /* amber-400 */
+    }
+    @keyframes pulse-glow {
+        from {
+            filter: drop-shadow(0 0 4px currentColor);
+        }
+        to {
+            filter: drop-shadow(0 0 8px currentColor);
+        }
+    }
+    
+    /* Hide the password reveal button in browsers that support it */
+    input[type="password"]::-ms-reveal,
+    input[type="password"]::-webkit-password-reveal-button {
+        display: none;
+    }
+
+    /* New Mission Briefing Carousel Styles */
+    .mission-carousel {
+      height: 150px;
+      position: relative;
+      overflow: hidden;
+      border-radius: 12px;
+      background: rgba(10, 20, 45, 0.5);
+      border: 1px solid var(--ps-border);
+      box-shadow: inset 0 0 15px rgba(0,0,0,0.5);
+    }
+    .carousel-track {
+      display: flex;
+      height: 100%;
+      transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .carousel-slide {
+      min-width: 100%;
+      height: 100%;
+      padding: 1rem;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background: linear-gradient(145deg, rgba(15, 23, 42, 0.3), rgba(30, 41, 59, 0.3));
+    }
+    .slide-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--ps-text-dim);
+    }
+    .slide-header i {
+      font-size: 1rem;
+    }
+    .slide-content {
+      text-align: center;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .carousel-dots {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      z-index: 5;
+    }
+    .carousel-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: rgba(255, 255, 255, 0.3);
+      border: 1px solid rgba(0, 191, 255, 0.3);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .carousel-dot.active {
+      background-color: var(--ps-cyan);
+      transform: scale(1.2);
+      box-shadow: 0 0 5px var(--ps-cyan);
+    }
+    @keyframes text-glow-pulse {
+      0%, 100% { text-shadow: 0 0 5px var(--ps-glow-soft), 0 0 10px var(--ps-glow-soft); }
+      50% { text-shadow: 0 0 10px var(--ps-glow), 0 0 20px var(--ps-glow); }
+    }
+    @keyframes icon-glow-pulse {
+      0%, 100% { filter: drop-shadow(0 0 3px currentColor); }
+      50% { filter: drop-shadow(0 0 6px currentColor); }
+    }
+    .text-glow-pulse {
+        animation: text-glow-pulse 3s infinite ease-in-out;
+    }
+    .icon-glow-pulse {
+        animation: icon-glow-pulse 3s infinite ease-in-out;
+    }
+
+    /* Thin scrollbar for specific elements */
+    .scrollbar-thin::-webkit-scrollbar {
+        width: 4px;
+    }
+    .scrollbar-thin::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .scrollbar-thin::-webkit-scrollbar-thumb {
+        background: var(--ps-cyan);
+        border-radius: 2px;
+    }
+    .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+        background: var(--ps-blue);
+    }
+
+    /* Pre-loader specific styles */
+    .preloader {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        height: 100%;
+        padding: 2rem;
+        background: var(--ps-dark-bg);
+        color: var(--ps-text);
+        animation: preloader-fade-in 1s ease-out;
+    }
+
+    @keyframes preloader-fade-in {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+    }
+
+    .preloader-icon {
+        width: 6rem;
+        height: 6rem;
+        color: var(--ps-cyan);
+        filter: drop-shadow(0 0 10px var(--ps-cyan));
+        margin-bottom: 1.5rem;
+        animation: icon-pulse 2s infinite alternate;
+    }
+    
+    @keyframes icon-pulse {
+        from { filter: drop-shadow(0 0 8px var(--ps-cyan)); transform: scale(1); }
+        to { filter: drop-shadow(0 0 16px var(--ps-cyan)); transform: scale(1.05); }
+    }
+
+    .preloader-features {
+        max-width: 450px;
+        margin-top: 2rem;
+        text-align: left;
+        display: grid;
+        gap: 1rem;
+    }
+    .preloader-feature {
+        display: flex;
+        align-items: center;
+        background: rgba(15, 23, 42, 0.4);
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        border: 1px solid var(--ps-border);
+    }
+    .preloader-feature i {
+        color: var(--ps-blue);
+        width: 2rem;
+        text-align: center;
+        font-size: 1.25rem;
+    }
+
+    .preloader-status {
+        margin-top: 2.5rem;
+        font-family: 'Orbitron', sans-serif;
+        letter-spacing: 0.1em;
+        color: var(--ps-text-dim);
+        animation: pulse-text 1.5s infinite alternate;
+    }
+    
+    @keyframes pulse-text {
+        from { opacity: 0.7; }
+        to { opacity: 1; }
+    }
+    
+    /* --- Leaflet custom styles --- */
+    .leaflet-container {
+        background-color: var(--ps-dark-bg);
+    }
+    .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+        background: var(--ps-panel-bg);
+        backdrop-filter: blur(10px);
+        color: var(--ps-text);
+        border: 1px solid var(--ps-border);
+        border-radius: 8px;
+        box-shadow: 0 0 15px var(--ps-glow-soft);
+    }
+    .leaflet-popup-content-wrapper {
+        border-radius: 8px;
+    }
+    .leaflet-popup-content {
+        margin: 12px;
+        font-family: 'Inter', sans-serif;
+        font-size: 13px;
+        line-height: 1.6;
+    }
+    .leaflet-container a.leaflet-popup-close-button {
+        color: var(--ps-text-dim);
+        top: 8px; right: 8px;
+    }
+    .leaflet-container a.leaflet-popup-close-button:hover {
+        color: var(--ps-text);
+    }
+    .leaflet-div-icon {
+        background: transparent;
+        border: none;
+    }
+    
+    /* Custom User Marker */
+    .user-location-icon .pulse-ring {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background-color: var(--ps-glow);
+      animation: pulse-ring-animation 1.5s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+    }
+    .user-location-icon .dot {
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        width: 14px; height: 14px;
+        background-color: white;
+        border: 2px solid var(--ps-blue);
+        border-radius: 50%;
+        box-shadow: 0 0 8px var(--ps-glow);
+    }
+
+    /* Custom Bus Marker */
+    .bus-marker-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: 2px solid white;
+        box-shadow: 0 0 8px #000;
+        transition: transform 0.2s ease;
+    }
+    .bus-marker-icon.selected {
+        transform: scale(1.2);
+        border-color: var(--ps-cyan);
+        box-shadow: 0 0 10px var(--ps-cyan), 0 0 5px var(--ps-cyan) inset;
+        animation: pulse-glow-button 1.5s infinite alternate;
+    }
+    .bus-marker-icon i {
+        color: white;
+        font-size: 14px;
+        text-shadow: 0 0 4px #000;
+    }
+
+    /* Custom Micromobility Marker */
+    .micromobility-marker-icon {
+        filter: drop-shadow(0 0 5px currentColor);
+        font-size: 24px;
+        transition: transform 0.2s ease;
+    }
+    .micromobility-marker-icon:hover {
+        transform: scale(1.2);
+    }
+
+    @keyframes pulse-ring-animation {
+      0% {
+        transform: scale(0.33);
+        opacity: 1;
+      }
+      80%, 100% {
+        transform: scale(1.5);
+        opacity: 0;
+      }
+    }
+
+    /* Toast Notification Styles */
+    @keyframes slide-in-right {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    
+    .icon-pet-glow {
+        color: var(--ps-cyan);
+        filter: drop-shadow(0 0 6px var(--ps-cyan));
+        animation: pulse-glow 2s infinite alternate;
+    }
+  </style>
+<script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.6.0",
+    "react/": "https://esm.sh/react@^19.1.0/",
+    "react": "https://esm.sh/react@^19.1.0",
+    "leaflet": "https://aistudiocdn.com/leaflet@^1.9.4",
+    "leaflet.heat": "https://aistudiocdn.com/leaflet.heat@^0.2.0"
+  }
+}
+</script>
+</head>
+<body class="theme-dark">
+  <div id="root">
+    <!-- START: Pre-loader content -->
+    <div class="preloader">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="preloader-icon">
+        <path d="M18.928 4.072a.75.75 0 00-.928-.5H6a.75.75 0 00-.728.5L4.018 9.197A4.502 4.502 0 003.75 10.5V17a3 3 0 003 3h1.5V17a.75.75 0 011.5 0v3H15V17a.75.75 0 011.5 0v3h1.5a3 3 0 003-3v-6.5a4.502 4.502 0 00-.268-1.303L18.928 4.072zM7.5 14.25a.75.75 0 01.75-.75h.008a.75.75 0 01.75.75v.008a.75.75 0 01-.75.75h-.008a.75.75 0 01-.75-.75v-.008zm9 0a.75.75 0 01.75-.75h.008a.75.75 0 01.75.75v.008a.75.75 0 01-.75.75h-.008a.75.75 0 01-.75-.75v-.008zM7.383 6h9.234l.732 2.5H6.65L7.383 6z" />
+      </svg>
+      <h1 class="text-5xl font-audiowide text-cyan-300" style="text-shadow: 0 0 8px var(--ps-glow-soft);">UppA</h1>
+      <p class="font-orbitron text-slate-300 mt-2">Conectando tu viaje. Potenciado por la comunidad y la IA.</p>
+      
+      <div class="preloader-features">
+        <div class="preloader-feature">
+          <i class="fas fa-satellite-dish"></i>
+          <span><strong>Intel en Tiempo Real:</strong> Reportes de demoras, estado y seguridad de la comunidad.</span>
+        </div>
+        <div class="preloader-feature">
+          <i class="fas fa-brain"></i>
+          <span><strong>Asistente IA Gemini:</strong> Consulta horarios, rutas y estado del servicio.</span>
+        </div>
+        <div class="preloader-feature">
+          <i class="fas fa-motorcycle"></i>
+          <span><strong>Micromovilidad:</strong> Encuentra Motos y Remises de pilotos verificados.</span>
+        </div>
+        <div class="preloader-feature">
+          <i class="fas fa-route"></i>
+          <span><strong>Planificador de Misión:</strong> Traza tu ruta óptima, evitando imprevistos.</span>
+        </div>
+      </div>
+
+      <div class="preloader-status">Iniciando Nexo Urbano...</div>
+    </div>
+    <!-- END: Pre-loader content -->
+  </div>
+  <noscript>
+    <div style="background-color: #030613; color: #e0e8f0; text-align: center; padding: 4rem; height: 100vh; font-family: 'Inter', sans-serif;">
+      <h2 style="font-family: 'Orbitron', sans-serif; color: #ff00ff; font-size: 2rem;">JavaScript Requerido</h2>
+      <p>UppA es una aplicación interactiva. Por favor, activa JavaScript en tu navegador para conectar a la Red Urbana.</p>
+    </div>
+  </noscript>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
