@@ -1,8 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { GlobalChatMessage, UserProfile, MicromobilityService } from '../types';
 import Modal from './Modal';
 import MicromobilityChatWindow from './MicromobilityChatWindow';
 import MicromobilityServiceCard from './MicromobilityServiceCard';
+
+type PrivateChat = {
+    participants: { id: string; name: string }[];
+    messages: GlobalChatMessage[];
+}
 
 interface MicromobilityChatModalProps {
   isOpen: boolean;
@@ -10,6 +15,8 @@ interface MicromobilityChatModalProps {
   messages: GlobalChatMessage[];
   currentUser: UserProfile;
   onSendMessage: (message: GlobalChatMessage) => void;
+  privateChats: Record<string, PrivateChat>;
+  onSendPrivateMessage: (chatId: string, message: GlobalChatMessage) => void;
   services: MicromobilityService[];
   onOpenRegistration: () => void;
   onToggleAvailability: (serviceId: string) => void;
@@ -23,6 +30,8 @@ const MicromobilityChatModal: React.FC<MicromobilityChatModalProps> = ({
   messages,
   currentUser,
   onSendMessage,
+  privateChats,
+  onSendPrivateMessage,
   services,
   onOpenRegistration,
   onToggleAvailability,
@@ -30,9 +39,33 @@ const MicromobilityChatModal: React.FC<MicromobilityChatModalProps> = ({
   onConfirmPayment
 }) => {
   const myServices = services.filter(s => s.providerId === currentUser.id);
+  const [activeChatId, setActiveChatId] = useState<string>('global');
+
+  const myPrivateChats = Object.entries(privateChats).filter(([chatId, chat]) =>
+    chat.participants.some(p => p.id === currentUser.id)
+  );
+
+  const activeMessages = activeChatId === 'global'
+    ? messages
+    : privateChats[activeChatId]?.messages || [];
+
+  const handleSendMessageInModal = (message: GlobalChatMessage) => {
+      if (activeChatId === 'global') {
+          onSendMessage(message);
+      } else {
+          onSendPrivateMessage(activeChatId, message);
+      }
+  };
+
+  const getChatPartnerName = (chat: PrivateChat) => {
+      const partner = chat.participants.find(p => p.id !== currentUser.id);
+      return partner ? partner.name : 'Desconocido';
+  };
+
+  const modalTitle = activeChatId === 'global' ? "Nexo de Micromovilidad" : `Chat con ${getChatPartnerName(privateChats[activeChatId])}`;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Nexo de Micromovilidad">
+    <Modal isOpen={isOpen} onClose={onClose} title={modalTitle}>
       <div className="h-[75vh] flex flex-col space-y-4">
         {/* My Services Section */}
         <div className="ps-card p-3">
@@ -62,17 +95,42 @@ const MicromobilityChatModal: React.FC<MicromobilityChatModalProps> = ({
             </button>
         </div>
 
-        {/* Global Chat Section */}
+        {/* Chat Selection */}
+        <div className="flex-shrink-0">
+             <div className="flex space-x-1 bg-slate-800/50 p-1 rounded-md">
+                <button
+                    onClick={() => setActiveChatId('global')}
+                    className={`flex-1 text-sm py-1 rounded transition-colors ${activeChatId === 'global' ? 'bg-cyan-500 text-white' : 'hover:bg-slate-700'}`}
+                >
+                    Global
+                </button>
+                {myPrivateChats.map(([chatId, chat]) => (
+                     <button
+                        key={chatId}
+                        onClick={() => setActiveChatId(chatId)}
+                        className={`flex-1 text-sm py-1 rounded transition-colors truncate ${activeChatId === chatId ? 'bg-purple-500 text-white' : 'hover:bg-slate-700'}`}
+                        title={`Chat con ${getChatPartnerName(chat)}`}
+                    >
+                        {getChatPartnerName(chat)}
+                    </button>
+                ))}
+             </div>
+        </div>
+
+        {/* Chat Section */}
         <div className="flex-grow flex flex-col ps-card p-3 min-h-0">
-          <h3 className="text-lg font-orbitron text-fuchsia-300 mb-2">Nexo de Comunicación Global</h3>
-          <p className="text-xs text-slate-400 mb-2">
-            Canal para todos los pilotos y pasajeros.
-          </p>
+          {activeChatId === 'global' && (
+            <>
+                <h3 className="text-lg font-orbitron text-fuchsia-300 mb-2">Nexo de Comunicación Global</h3>
+                <p className="text-xs text-slate-400 mb-2">Canal para todos los pilotos y pasajeros.</p>
+            </>
+          )}
+
           <div className="flex-grow min-h-0">
             <MicromobilityChatWindow
-                messages={messages}
+                messages={activeMessages}
                 currentUser={currentUser}
-                onSendMessage={onSendMessage}
+                onSendMessage={handleSendMessageInModal}
             />
           </div>
         </div>

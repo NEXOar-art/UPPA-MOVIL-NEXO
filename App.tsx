@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
-  Bus, BusStop, Report, ChatMessage, UserProfile, Coordinates, ReportType, RouteResult, TravelMode, UppyChatMessage, MicromobilityService, GlobalChatMessage, RatingHistoryEntry, Maneuver, ScheduleDetail, MicromobilityServiceType
+  Bus, BusStop, Report, ChatMessage, UserProfile, Coordinates, ReportType, RouteResult, TravelMode, UppyChatMessage, MicromobilityService, GlobalChatMessage, RatingHistoryEntry, Maneuver, ScheduleDetail
 } from './types';
 import {
   MOCK_BUS_LINES, MOCK_BUS_STOPS_DATA, DEFAULT_MAP_CENTER, REPORT_TYPE_TRANSLATIONS, BUS_LINE_ADDITIONAL_INFO, DEFAULT_MAP_ZOOM
@@ -31,6 +31,7 @@ import LocationDashboard from './components/LocationDashboard';
 import PointsOfInterest from './components/PointsOfInterest';
 import AvailableServices from './components/AvailableServices';
 import TripDetailsPanel from './components/TripDetailsPanel'; // Import the new component
+import RequestConfirmationPanel from './components/RequestConfirmationPanel';
 
 // Services
 import { getAddressFromCoordinates } from './services/geolocationService';
@@ -48,6 +49,10 @@ const App: React.FC = () => {
     const [reports, setReports] = useState<Report[]>([]);
     const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
     const [globalChatMessages, setGlobalChatMessages] = useState<GlobalChatMessage[]>([]);
+    const [privateChats, setPrivateChats] = useState<Record<string, {
+        participants: { id: string, name: string }[];
+        messages: GlobalChatMessage[];
+    }>>({});
     const [micromobilityServices, setMicromobilityServices] = useState<MicromobilityService[]>([]);
     const [selectedBusLineId, setSelectedBusLineId] = useState<string | null>(null);
     const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
@@ -64,7 +69,7 @@ const App: React.FC = () => {
     const [currentSchedule, setCurrentSchedule] = useState<ScheduleDetail | null>(null);
     const [isPanelVisible, setIsPanelVisible] = useState(window.innerWidth >= 1024);
     const [serviceToConfirm, setServiceToConfirm] = useState<string | null>(null);
-    const [confirmationCountdown, setConfirmationCountdown] = useState(60);
+    const [confirmationCountdown, setConfirmationCountdown] = useState(120);
     const [isMicromobilitySectionOpen, setIsMicromobilitySectionOpen] = useState(false);
     const [isRankingOpen, setIsRankingOpen] = useState(false);
 
@@ -135,6 +140,17 @@ const App: React.FC = () => {
     
     const handleSendGlobalChatMessage = (message: GlobalChatMessage) => {
         setGlobalChatMessages(prev => [...prev, message]);
+    };
+
+    const handleSendPrivateMessage = (chatId: string, message: GlobalChatMessage) => {
+        setPrivateChats(prev => {
+            const chat = prev[chatId];
+            if (!chat) return prev;
+            return {
+                ...prev,
+                [chatId]: { ...chat, messages: [...chat.messages, message] }
+            };
+        });
     };
 
     const handleSetRoute = useCallback(async (origin: Coordinates, destination: Coordinates, travelMode: TravelMode) => {
@@ -312,8 +328,8 @@ const App: React.FC = () => {
 
     const handleInitiateRequest = (serviceId: string) => {
         if (serviceToConfirm) return;
-        setServiceToConfirm(serviceId);
-        setConfirmationCountdown(60);
+        setServiceToConfirm(serviceId); // This is the service being requested by the user
+        setConfirmationCountdown(120);
     };
 
     const handleCancelRequest = useCallback(() => {
@@ -322,7 +338,7 @@ const App: React.FC = () => {
             countdownIntervalRef.current = null;
         }
         setServiceToConfirm(null);
-        setConfirmationCountdown(60);
+        setConfirmationCountdown(120);
     }, []);
     
     const handleSubmitReview = (review: Omit<RatingHistoryEntry, 'userId' | 'timestamp' | 'sentiment'>) => {
@@ -443,12 +459,27 @@ const App: React.FC = () => {
             countdownIntervalRef.current = window.setInterval(() => {
                 setConfirmationCountdown(prev => {
                     if (prev <= 1) {
-                         setMicromobilityServices(currServices => currServices.map(s => 
-                            s.id === serviceToConfirm ? { ...s, isOccupied: true, isAvailable: true } : s
-                        ));
-                        showNotification("Solicitud confirmada. El proveedor está ahora ocupado.", 'success');
+                        const confirmedService = micromobilityServices.find(s => s.id === serviceToConfirm);
+                        if (confirmedService && currentUser) {
+                            setMicromobilityServices(currServices => currServices.map(s => 
+                                s.id === serviceToConfirm ? { ...s, isOccupied: true, isAvailable: false } : s
+                            ));
+
+                            setPrivateChats(prevChats => ({
+                                ...prevChats,
+                                [confirmedService.id]: {
+                                    participants: [
+                                        { id: currentUser.id, name: currentUser.name },
+                                        { id: confirmedService.providerId, name: confirmedService.providerName }
+                                    ],
+                                    messages: []
+                                }
+                            }));
+
+                            showNotification(`Servicio con ${confirmedService.providerName} confirmado. Se ha abierto un chat privado.`, 'success');
+                        }
                         handleCancelRequest();
-                        return 0;
+                        return 0;                        
                     }
                     return prev - 1;
                 });
@@ -457,7 +488,7 @@ const App: React.FC = () => {
         return () => {
             if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
         };
-    }, [serviceToConfirm, handleCancelRequest, showNotification]);
+    }, [serviceToConfirm, handleCancelRequest, showNotification, micromobilityServices, currentUser]);
 
     const isTopRanked = useMemo(() => {
         if (!currentUser) return false;
@@ -543,6 +574,8 @@ const App: React.FC = () => {
                         isNavigating={!!currentNavigation}
                         onSelectBusStop={() => {}}
                         onNavigateToStopLocation={handleFindRouteToStop}
+                        serviceToConfirm={serviceToConfirm}
+                        onInitiateRequest={handleInitiateRequest}
                     />
                      {currentNavigation && (
                         <NavigationDisplay
@@ -575,6 +608,8 @@ const App: React.FC = () => {
                 messages={globalChatMessages} 
                 currentUser={currentUser} 
                 onSendMessage={handleSendGlobalChatMessage}
+                privateChats={privateChats}
+                onSendPrivateMessage={handleSendPrivateMessage}
                 services={micromobilityServices}
                 onOpenRegistration={() => setIsMicromobilityRegistrationOpen(true)}
                 onToggleAvailability={handleToggleAvailability}
@@ -586,6 +621,13 @@ const App: React.FC = () => {
             </Modal>
             <OperatorInsightsModal isOpen={isOperatorInsightsOpen} onClose={() => setIsOperatorInsightsOpen(false)} services={micromobilityServices} />
             {postTripReviewService && <PostTripReviewModal isOpen={!!postTripReviewService} onClose={() => setPostTripReviewService(null)} onSubmit={handleSubmitReview} service={postTripReviewService} currentUser={currentUser} />}
+            {serviceToConfirm && micromobilityServices.find(s => s.id === serviceToConfirm) && (
+                <RequestConfirmationPanel
+                    service={micromobilityServices.find(s => s.id === serviceToConfirm)!}
+                    countdown={confirmationCountdown}
+                    onCancel={handleCancelRequest}
+                />
+            )}
             {notification && <ErrorToast notification={notification} onClose={() => setNotification(null)} />}
             <AccessibilityControls />
         </div>

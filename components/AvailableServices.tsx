@@ -32,11 +32,9 @@ const AvailableServices: React.FC<AvailableServicesProps> = ({
             <div className="space-y-3 max-h-60 overflow-y-auto scrollbar-thin pr-2 -mr-2">
                 {services.map(service => {
                     const isOwnService = service.providerId === currentUser.id;
-                    const isBeingConfirmed = service.id === serviceToConfirm;
-                    const isAnyServiceBeingConfirmed = !!serviceToConfirm;
+                    const isRequestInProgress = !!serviceToConfirm;
                     const iconClass = MICROMOBILITY_SERVICE_ICONS[service.type] || 'fa-question-circle';
                     const colorClass = service.type === MicromobilityServiceType.Moto ? 'text-sky-400' : 'text-indigo-400';
-                    const progressPercentage = (confirmationCountdown / 60) * 100;
 
                     return (
                         <div key={service.id} className="p-3 bg-slate-900/50 rounded-lg flex items-center justify-between gap-3 border border-slate-700/80">
@@ -51,31 +49,15 @@ const AvailableServices: React.FC<AvailableServicesProps> = ({
                                 </div>
                             </div>
 
-                            {isBeingConfirmed ? (
-                                <button
-                                    onClick={onCancelRequest}
-                                    className="ps-button whitespace-nowrap px-3 py-1.5 text-xs relative overflow-hidden bg-yellow-600 hover:bg-yellow-700 border-yellow-500 hover:border-yellow-400 text-black"
-                                >
-                                    <span 
-                                        className="absolute top-0 left-0 h-full bg-yellow-500/50 transition-all duration-1000 linear"
-                                        style={{ width: `${progressPercentage}%` }}
-                                    ></span>
-                                    <span className="relative z-10 flex items-center">
-                                        <i className="fas fa-hourglass-half mr-2 animate-spin [animation-duration:2s]"></i>
-                                        Cancelar ({confirmationCountdown}s)
-                                    </span>
-                                </button>
-                            ) : (
-                                <button
-                                    onClick={() => onInitiateRequest(service.id)}
-                                    disabled={isOwnService || isAnyServiceBeingConfirmed}
-                                    className="ps-button active whitespace-nowrap px-3 py-1.5 text-xs"
-                                    title={isOwnService ? "No puedes solicitar tu propio servicio" : isAnyServiceBeingConfirmed ? "Espera a que termine la solicitud actual" : `Solicitar ${service.type}`}
-                                >
-                                    <i className="fas fa-paper-plane mr-2"></i>
-                                    Solicitar
-                                </button>
-                            )}
+                            <button
+                                onClick={() => onInitiateRequest(service.id)}
+                                disabled={isOwnService || isRequestInProgress}
+                                className="ps-button active whitespace-nowrap px-3 py-1.5 text-xs"
+                                title={isOwnService ? "No puedes solicitar tu propio servicio" : isRequestInProgress ? "Ya hay una solicitud en curso" : `Solicitar ${service.type}`}
+                            >
+                                <i className="fas fa-paper-plane mr-2"></i>
+                                Solicitar
+                            </button>
                         </div>
                     );
                 })}

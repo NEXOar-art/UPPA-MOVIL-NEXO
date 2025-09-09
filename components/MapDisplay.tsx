@@ -51,6 +51,8 @@ interface MapDisplayProps {
   userLocation: Coordinates | null;
   routeResult: RouteResult | null;
   isNavigating: boolean;
+  serviceToConfirm: string | null;
+  onInitiateRequest: (serviceId: string) => void;
   onSelectBusStop: (stop: BusStop) => void;
   onNavigateToStopLocation: (coords: Coordinates) => void;
 }
@@ -65,6 +67,8 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
   selectedBusLineId,
   userLocation,
   routeResult,
+  serviceToConfirm,
+  onInitiateRequest,
   onNavigateToStopLocation
 }) => {
   const mapRef = useRef<L.Map | null>(null);
@@ -154,19 +158,31 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
     micromobilityServices
       .filter(s => s.isActive && s.isAvailable && !s.isOccupied)
       .forEach(service => {
-        L.marker([service.location.lat, service.location.lng], { 
+        const marker = L.marker([service.location.lat, service.location.lng], { 
           icon: createMicromobilityIcon(service) 
         })
-        .addTo(micromobilityLayerRef.current)
-        .bindPopup(`
-            <div class="p-1">
-                <h4 class="font-bold text-white font-orbitron">${service.serviceName}</h4>
-                <p class="text-xs text-slate-300">${service.providerName} (${service.type})</p>
-                <p class="text-xs text-slate-400 mt-1">${service.vehicleModel}</p>
-            </div>
-        `);
+        .addTo(micromobilityLayerRef.current);
+        
+        const isRequestInProgress = !!serviceToConfirm;
+        const popupContent = `
+             <div class="p-1">
+                 <h4 class="font-bold text-white font-orbitron">${service.serviceName}</h4>
+                 <p class="text-xs text-slate-300">${service.providerName} (${service.type})</p>
+                 <p class="text-xs text-slate-400 mt-1">${service.vehicleModel}</p>
+                 <button id="request-btn-${service.id}" class="w-full mt-2 ps-button active text-xs py-1 px-3 ${isRequestInProgress ? 'opacity-50 cursor-not-allowed' : ''}" ${isRequestInProgress ? 'disabled' : ''}>
+                     ${isRequestInProgress ? 'Solicitud en curso...' : 'Solicitar'}
+                 </button>
+             </div>
+         `;
+        marker.bindPopup(popupContent);
+
+        marker.on('popupopen', () => {
+            const btn = document.getElementById(`request-btn-${service.id}`);
+            if (btn) btn.onclick = () => { onInitiateRequest(service.id); marker.closePopup(); };
+        });
+
       });
-  }, [micromobilityServices]);
+  }, [micromobilityServices, onInitiateRequest, serviceToConfirm]);
 
   // Update bus stops
   useEffect(() => {
