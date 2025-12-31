@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { GlobalChatMessage, UserProfile } from '../types';
 import { MICROMOBILITY_CHAT_EMOJIS, DEFAULT_USER_ID, DEFAULT_USER_NAME } from '../constants';
@@ -56,7 +57,7 @@ const MicromobilityChatWindow: React.FC<MicromobilityChatWindowProps> = ({ messa
 
   return (
     <div className="h-full flex flex-col bg-transparent">
-      <div className="flex-grow p-1 space-y-3 overflow-y-auto max-h-[300px]">
+      <div className="flex-grow p-1 space-y-3 overflow-y-auto max-h-[350px]">
         {messages.length === 0 && (
           <p className="text-center text-slate-500 italic py-8">El nexo de comunicación está abierto. Inicia la conversación.</p>
         )}
@@ -69,18 +70,18 @@ const MicromobilityChatWindow: React.FC<MicromobilityChatWindowProps> = ({ messa
                 : 'bg-fuchsia-900/40 border-fuchsia-500/50 [box-shadow:0_0_10px_rgba(255,0,255,0.2)_inset]'}`
             }>
                <div className="flex items-center justify-between mb-1">
-                <span className={`text-xs font-semibold opacity-90 ${msg.userId === currentUser.id ? 'text-cyan-300' : 'text-fuchsia-300'}`}>{msg.userName} {msg.userId === currentUser.id ? '(Tú)' : ''}</span>
-                <span className={`text-xs opacity-80 ml-2 ${getSentimentNeonColor(msg.sentiment)}`} title={`Sentimiento: ${msg.sentiment || 'desconocido'}`}>
+                <span className={`text-[10px] font-semibold opacity-90 ${msg.userId === currentUser.id ? 'text-cyan-300' : 'text-fuchsia-300'}`}>{msg.userName} {msg.userId === currentUser.id ? '(Tú)' : ''}</span>
+                <span className={`text-[10px] opacity-80 ml-2 ${getSentimentNeonColor(msg.sentiment)}`} title={`Sentimiento: ${msg.sentiment || 'desconocido'}`}>
                     {msg.sentiment === 'positive' && <i className="fas fa-smile"></i>}
                     {msg.sentiment === 'negative' && <i className="fas fa-frown"></i>}
                     {msg.sentiment === 'neutral' && <i className="fas fa-meh"></i>}
                 </span>
               </div>
-              <p className="text-sm break-words text-slate-200">
-                {msg.emoji && <span className="mr-1 text-lg">{msg.emoji}</span>}
+              <p className="text-sm break-words text-slate-200 leading-relaxed">
+                {msg.emoji && <span className="mr-1 text-base">{msg.emoji}</span>}
                 {msg.text}
               </p>
-              <span className="text-xs opacity-70 block text-right mt-1 text-slate-400">
+              <span className="text-[9px] opacity-70 block text-right mt-1 text-slate-400">
                 {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
@@ -89,14 +90,14 @@ const MicromobilityChatWindow: React.FC<MicromobilityChatWindowProps> = ({ messa
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="p-1 border-y border-blue-500/20 mt-2">
-         <div className="flex space-x-1 p-2 overflow-x-auto">
+      <div className="p-1 border-y border-blue-500/20 mt-2 bg-slate-900/30">
+         <div className="flex space-x-1 p-1 overflow-x-auto scrollbar-hide">
             {MICROMOBILITY_CHAT_EMOJIS.map(item => (
                 <button
                 key={item.emoji}
                 title={item.description}
                 onClick={() => setSelectedEmoji(item.emoji === selectedEmoji ? null : item.emoji)}
-                className={`p-2 rounded-full text-xl transition-all duration-150 transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-opacity-50
+                className={`p-1.5 rounded-full text-sm transition-all duration-150 transform hover:scale-110 focus:outline-none focus:ring-1 focus:ring-opacity-50
                           ${selectedEmoji === item.emoji ? 'bg-blue-500 ring-blue-400 scale-110' : 'bg-slate-800/80 hover:bg-slate-700 ring-slate-600'}`}
                 >
                 {item.emoji}
@@ -111,22 +112,22 @@ const MicromobilityChatWindow: React.FC<MicromobilityChatWindowProps> = ({ messa
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && !isSending && handleSendMessage()}
-          placeholder="Transmitir en el nexo..."
-          className="flex-grow ps-input"
+          placeholder="Mensaje prioritario..."
+          className="flex-grow ps-input text-sm py-2 px-3"
           disabled={isSending}
         />
         <button
           onClick={handleSendMessage}
           disabled={isSending || (!newMessage.trim() && !selectedEmoji)}
-          className="ps-button active h-[42px] w-[42px] flex-shrink-0 flex items-center justify-center"
+          className="ps-button active h-[38px] w-[38px] flex-shrink-0 flex items-center justify-center"
         >
           {isSending ? (
-            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
           ) : (
-             <i className="fas fa-paper-plane"></i>
+             <i className="fas fa-paper-plane text-xs"></i>
           )}
         </button>
       </div>

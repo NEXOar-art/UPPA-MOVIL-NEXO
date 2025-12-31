@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { GlobalChatMessage, UserProfile, MicromobilityService } from '../types';
 import Modal from './Modal';
 import MicromobilityChatWindow from './MicromobilityChatWindow';
@@ -22,6 +23,7 @@ interface MicromobilityChatModalProps {
   onToggleAvailability: (serviceId: string) => void;
   onToggleOccupied: (serviceId: string) => void;
   onConfirmPayment: (serviceId: string) => void;
+  initialChatId?: string | null; // New optional prop
 }
 
 const MicromobilityChatModal: React.FC<MicromobilityChatModalProps> = ({
@@ -36,10 +38,19 @@ const MicromobilityChatModal: React.FC<MicromobilityChatModalProps> = ({
   onOpenRegistration,
   onToggleAvailability,
   onToggleOccupied,
-  onConfirmPayment
+  onConfirmPayment,
+  initialChatId
 }) => {
   const myServices = services.filter(s => s.providerId === currentUser.id);
   const [activeChatId, setActiveChatId] = useState<string>('global');
+
+  useEffect(() => {
+    if (initialChatId && isOpen) {
+        setActiveChatId(initialChatId);
+    } else if (isOpen && activeChatId === 'global' && !initialChatId) {
+        // Keep as is
+    }
+  }, [initialChatId, isOpen]);
 
   // FIX: Explicitly type the destructured `chat` as `PrivateChat` because `Object.entries` can be inferred as `[string, unknown][]`.
   const myPrivateChats = Object.entries(privateChats).filter(([, chat]) =>

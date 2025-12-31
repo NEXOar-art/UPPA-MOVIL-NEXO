@@ -75,6 +75,7 @@ const App: React.FC = () => {
     const [confirmationCountdown, setConfirmationCountdown] = useState(120);
     const [isMicromobilitySectionOpen, setIsMicromobilitySectionOpen] = useState(false);
     const [isRankingOpen, setIsRankingOpen] = useState(false);
+    const [activePrivateChatId, setActivePrivateChatId] = useState<string | null>(null);
 
     // MODAL STATES
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -341,9 +342,29 @@ const App: React.FC = () => {
     };
 
     const handleInitiateRequest = (serviceId: string) => {
-        if (serviceToConfirm) return;
-        setServiceToConfirm(serviceId); // This is the service being requested by the user
-        setConfirmationCountdown(120);
+        if (!currentUser) return;
+        const requestedService = micromobilityServices.find(s => s.id === serviceId);
+        if (!requestedService) return;
+
+        // Immediately open private chat
+        setPrivateChats(prevChats => {
+            if (prevChats[serviceId]) return prevChats;
+            return {
+                ...prevChats,
+                [serviceId]: {
+                    participants: [
+                        { id: currentUser.id, name: currentUser.name },
+                        { id: requestedService.providerId, name: requestedService.providerName }
+                    ],
+                    messages: []
+                }
+            };
+        });
+
+        setActivePrivateChatId(serviceId);
+        setIsMicromobilityChatOpen(true);
+        audioService.playConfirmationSound();
+        showNotification(`Conectando con ${requestedService.providerName} vía Nexo Privado...`, 'info');
     };
 
     const handleCancelRequest = useCallback(() => {
@@ -609,7 +630,7 @@ const App: React.FC = () => {
                     onOpenRanking={() => setIsRankingOpen(true)}
                     connectedUsersCount={137}
                     onFocusUserLocation={() => userLocation && setMapCenter(userLocation)}
-                    onToggleMicromobilityModal={() => setIsMicromobilityChatOpen(true)}
+                    onToggleMicromobilityModal={() => { setIsMicromobilityChatOpen(true); setActivePrivateChatId(null); }}
                     onToggleDonationModal={() => setIsDonationModalOpen(true)}
                     isTopRanked={isTopRanked}
                     onTogglePanel={handleTogglePanel}
@@ -683,7 +704,7 @@ const App: React.FC = () => {
                                     isOpen={isMicromobilitySectionOpen}
                                     onToggle={() => setIsMicromobilitySectionOpen(!isMicromobilitySectionOpen)}
                                     hasAvailableServices={availableMicromobilityServices.length > 0}
-                                    onOpenChat={() => setIsMicromobilityChatOpen(true)}
+                                    onOpenChat={() => { setIsMicromobilityChatOpen(true); setActivePrivateChatId(null); }}
                                     />
                                     <RankingTable
                                     services={micromobilityServices}
@@ -783,7 +804,7 @@ const App: React.FC = () => {
                 
                  <MicromobilityChatModal 
                     isOpen={isMicromobilityChatOpen}
-                    onClose={() => setIsMicromobilityChatOpen(false)}
+                    onClose={() => { setIsMicromobilityChatOpen(false); setActivePrivateChatId(null); }}
                     messages={globalChatMessages}
                     currentUser={currentUser}
                     onSendMessage={handleSendGlobalChatMessage}
@@ -797,6 +818,7 @@ const App: React.FC = () => {
                     onToggleAvailability={handleToggleAvailability}
                     onToggleOccupied={(serviceId) => handleToggleOccupied(serviceId, currentUser.id)}
                     onConfirmPayment={handleConfirmPayment}
+                    initialChatId={activePrivateChatId}
                  />
 
                 {postTripReviewService && (

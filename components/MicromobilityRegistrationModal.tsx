@@ -263,7 +263,7 @@ const MicromobilityRegistrationModal: React.FC<MicromobilityRegistrationModalPro
       <div className="flex justify-end space-x-3 pt-3">
         <button
             type="button"
-            // FIX: Ensure onClose is called with zero arguments by wrapping it in an arrow function.
+            // Ensure onClose is called with zero arguments by wrapping it in an arrow function to match its type definition () => void
             onClick={() => onClose()}
             disabled={isSubmitting}
             className="ps-button"
