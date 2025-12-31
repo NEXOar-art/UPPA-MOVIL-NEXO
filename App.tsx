@@ -1,16 +1,18 @@
+
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   Bus, BusStop, Report, ChatMessage, UserProfile, Coordinates, ReportType, RouteResult, TravelMode, UppyChatMessage, MicromobilityService, GlobalChatMessage, RatingHistoryEntry, Maneuver, ScheduleDetail
 } from './types';
 import {
-  MOCK_BUS_LINES, MOCK_BUS_STOPS_DATA, DEFAULT_MAP_CENTER, REPORT_TYPE_TRANSLATIONS, BUS_LINE_ADDITIONAL_INFO, DEFAULT_MAP_ZOOM
+  MOCK_BUS_LINES, MOCK_BUS_STOPS_DATA, DEFAULT_MAP_CENTER, REPORT_TYPE_TRANSLATIONS, BUS_LINE_ADDITIONAL_INFO, DEFAULT_MAP_ZOOM, UPPA_MERCADO_PAGO_ALIAS, UPPA_CRYPTO_ADDRESS_EXAMPLE
 } from './constants';
 import { useSettings } from './contexts/SettingsContext';
 
 // Components
 import Navbar from './components/Navbar';
 import MapDisplay from './components/MapDisplay';
-import { BusCard } from './components/BusCard';
+// FIX: `BusCard` is a default export and `PostTripReviewModal` is a named export from the same module. This import is now correct.
+import BusCard, { PostTripReviewModal } from './components/BusCard';
 import ChatWindow from './components/ChatWindow';
 import Modal from './components/Modal';
 import ReportForm from './components/ReportForm';
@@ -20,7 +22,6 @@ import TripPlanner from './components/TripPlanner';
 import CalculatorModal from './components/CalculatorModal';
 import UppyAssistant from './components/UppyAssistant';
 import MicromobilityRegistrationModal from './components/MicromobilityRegistrationModal';
-import PostTripReviewModal from './components/BusCard';
 import MicromobilityChatModal from './components/MicromobilityChatModal';
 import OperatorInsightsModal from './components/FloatingMapModal';
 import NavigationDisplay from './components/NavigationDisplay';
@@ -32,6 +33,8 @@ import PointsOfInterest from './components/PointsOfInterest';
 import AvailableServices from './components/AvailableServices';
 import TripDetailsPanel from './components/TripDetailsPanel'; // Import the new component
 import RequestConfirmationPanel from './components/RequestConfirmationPanel';
+import ApmModal, { ApmResult } from './components/ApmModal';
+import CollapsibleSection from './components/CollapsibleSection';
 
 // Services
 import { getAddressFromCoordinates } from './services/geolocationService';
@@ -76,10 +79,20 @@ const App: React.FC = () => {
     // MODAL STATES
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
     const [isCalculatorModalOpen, setIsCalculatorModalOpen] = useState(false);
+    const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
     const [isMicromobilityRegistrationOpen, setIsMicromobilityRegistrationOpen] = useState(false);
     const [isMicromobilityChatOpen, setIsMicromobilityChatOpen] = useState(false);
     const [postTripReviewService, setPostTripReviewService] = useState<MicromobilityService | null>(null);
     const [isOperatorInsightsOpen, setIsOperatorInsightsOpen] = useState(false);
+    const [apmState, setApmState] = useState<{
+        isOpen: boolean;
+        status: 'idle' | 'running' | 'finished' | 'no_results';
+        results: ApmResult[];
+    }>({
+        isOpen: false,
+        status: 'idle',
+        results: [],
+    });
 
     // UPPY ASSISTANT STATE
     const [uppyChatHistory, setUppyChatHistory] = useState<UppyChatMessage[]>([]);
@@ -188,6 +201,7 @@ const App: React.FC = () => {
 
     const handleFindRouteToStop = (stopLocation: Coordinates) => {
         if (userLocation) {
+            audioService.playHighlightSound();
             handleSetRoute(userLocation, stopLocation, 'WALK');
             showNotification("Ruta a la parada trazada. Revisa el Planificador de Misión.", 'info');
         } else {
@@ -370,6 +384,50 @@ const App: React.FC = () => {
         showNotification("Gracias por tu evaluación. Tu feedback mejora la red.", "success");
     };
 
+    const handleTriggerApm = () => {
+        if (!userLocation) {
+            showNotification("Se necesita tu ubicación para encontrar alternativas.", 'error');
+            return;
+        }
+
+        setApmState({ isOpen: true, status: 'running', results: [] });
+
+        // Simulate backend processing
+        setTimeout(() => {
+            // Find nearby available services
+            const nearbyServices = micromobilityServices
+                .filter(s => s.isActive && s.isAvailable && !s.isOccupied)
+                .map(s => ({
+                    ...s,
+                    distance: calculateDistance(userLocation, s.location)
+                }))
+                .filter(s => s.distance < 5000) // 5km radius
+                .sort((a, b) => a.distance - b.distance)
+                .slice(0, 3); // Take top 3 closest
+
+            if (nearbyServices.length === 0) {
+                setApmState(prev => ({ ...prev, status: 'no_results' }));
+            } else {
+                const resultsWithSimulatedData: ApmResult[] = nearbyServices.map(s => ({
+                    ...s,
+                    eta: Math.max(2, Math.round(s.distance / 400)), // Simulate ETA based on distance
+                    cost: Math.round(((s.type === 'Moto' ? 1500 : 3000) + Math.round(s.distance * 0.5)) / 50) * 50, // Simulate cost and round
+                }));
+                setApmState(prev => ({ ...prev, status: 'finished', results: resultsWithSimulatedData }));
+            }
+        }, 5500); // Total simulation time
+    };
+
+    const handleApmSelectService = (serviceId: string) => {
+        handleInitiateRequest(serviceId);
+        setApmState({ isOpen: false, status: 'idle', results: [] }); // Close APM modal and start request flow
+    };
+
+    const handleApmClose = () => {
+        setApmState({ isOpen: false, status: 'idle', results: [] });
+    };
+
+
     // USEEFFECTS
     useEffect(() => {
         document.body.className = `theme-${theme}`;
@@ -389,12 +447,31 @@ const App: React.FC = () => {
                 (position) => {
                     setUserLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
                 },
-                (error) => console.error("Error watching position:", error.message),
-                { enableHighAccuracy: true, timeout: 20000, maximumAge: 5000 }
+                (error) => {
+                    console.error("Error watching position:", error); // Log the full error object for debugging
+                    let userMessage = "No se pudo actualizar tu ubicación.";
+                    switch (error.code) {
+                        case error.PERMISSION_DENIED:
+                            userMessage = "Permiso de ubicación denegado. Habilítalo en los ajustes de tu navegador.";
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            userMessage = "Tu ubicación no está disponible actualmente. Revisa la señal GPS.";
+                            break;
+                        case error.TIMEOUT:
+                            userMessage = "Se agotó el tiempo de espera para obtener tu ubicación. Intenta moverte a un lugar con mejor señal.";
+                            break;
+                        default:
+                             userMessage = `Ocurrió un error de ubicación: ${error.message}`;
+                             break;
+                    }
+                    showNotification(userMessage, 'error');
+                },
+                // Relaxed constraints to prevent timeouts on less performant devices or with weak signals.
+                { enableHighAccuracy: false, timeout: 30000, maximumAge: 10000 }
             );
         }
         return () => { if (watchId) navigator.geolocation.clearWatch(watchId); };
-    }, []);
+    }, [showNotification]);
 
     useEffect(() => { // Simulate bus movement
         const interval = setInterval(() => {
@@ -494,143 +571,271 @@ const App: React.FC = () => {
         if (!currentUser) return false;
         const sortedServices = micromobilityServices
             .filter(s => s.isActive && s.numberOfRatings > 0)
-            .sort((a, b) => b.rating - a.rating);
-        return sortedServices.slice(0, 5).some(s => s.providerId === currentUser.id);
+            .sort((a, b) => {
+                if (b.rating !== a.rating) {
+                    return b.rating - a.rating;
+                }
+                return b.completedTrips - a.completedTrips;
+            });
+        
+        return sortedServices
+            .slice(0, 5)
+            .some(service => service.providerId === currentUser.id);
     }, [micromobilityServices, currentUser]);
+
+    // Check for active private chats involving the current user
+    const hasActivePrivateChat = useMemo(() => {
+        if (!currentUser) return false;
+        // FIX: Cast Object.values(privateChats) to any[] to avoid 'unknown' type error when accessing 'participants'
+        return (Object.values(privateChats) as any[]).some((chat: any) => 
+            chat.participants.some((p: any) => p.id === currentUser.id)
+        );
+    }, [privateChats, currentUser]);
 
     if (!currentUser) {
         return <LoginPage onLogin={handleLogin} />;
     }
+    
+    const availableMicromobilityServices = micromobilityServices.filter(s => s.isActive && s.isAvailable && !s.isOccupied && s.providerId !== currentUser.id);
+    const serviceForConfirmation = serviceToConfirm ? micromobilityServices.find(s => s.id === serviceToConfirm) : null;
 
     return (
-        <div className="bg-ps-dark-bg text-gray-200 min-h-screen flex flex-col font-sans">
-            <Navbar
-                appName="UppA"
-                currentUser={currentUser}
-                onLogout={handleLogout}
-                onOpenRanking={() => setIsRankingOpen(prev => !prev)}
-                connectedUsersCount={137}
-                onFocusUserLocation={() => userLocation && setMapCenter(userLocation)}
-                onToggleMicromobilityModal={() => setIsMicromobilityChatOpen(prev => !prev)}
-                isTopRanked={isTopRanked}
-                onTogglePanel={handleTogglePanel}
-                isPanelVisible={isPanelVisible}
-            />
-
-            <main className="flex-grow flex relative overflow-hidden">
-                {isPanelVisible && <div onClick={handleTogglePanel} className="fixed lg:hidden inset-0 bg-black/60 z-30" aria-hidden="true" />}
-                <div className={`${isPanelVisible ? 'translate-x-0' : '-translate-x-full'} absolute lg:relative top-0 left-0 h-full lg:h-auto w-[90%] max-w-[400px] lg:w-[400px] flex-shrink-0 bg-ps-dark-bg p-4 z-40 lg:z-auto flex flex-col gap-4 overflow-y-auto scrollbar-thin transition-transform duration-300 ease-in-out lg:translate-x-0`}>
-                    {selectedBusLineId && buses[selectedBusLineId] ? (
-                         <BusCard
-                            bus={buses[selectedBusLineId]}
-                            onSelect={() => {}} isSelected={true} onReport={handleOpenReportModal}
-                            details={BUS_LINE_ADDITIONAL_INFO[selectedBusLineId] || null}
-                            isFavorite={currentUser.favoriteBusLineIds.includes(selectedBusLineId)}
-                            onToggleFavorite={() => handleToggleFavorite(selectedBusLineId)}
-                            onFindRouteToStop={handleFindRouteToStop}
-                        >
-                          <ChatWindow
-                              busLineId={selectedBusLineId}
-                              messages={chatMessages.filter(m => m.busLineId === selectedBusLineId)}
-                              currentUser={currentUser} onSendMessage={handleSendChatMessage}
-                              onSendReportFromChat={() => {}}
-                              onToggleCalculator={() => setIsCalculatorModalOpen(true)}
-                          />
-                        </BusCard>
-                    ) : (
-                        <div className="ps-card p-4">
-                            <h3 className="text-xl font-orbitron text-blue-300">Selecciona una Línea</h3>
-                            <div className="space-y-2 mt-2">
-                                {Object.values(buses).map(bus => (
-                                     <BusCard
-                                        key={bus.id} bus={bus} onSelect={() => handleSelectBusLine(bus.id)}
-                                        isSelected={false} onReport={() => {}} details={null}
-                                        isFavorite={currentUser.favoriteBusLineIds.includes(bus.id)}
-                                        onToggleFavorite={() => handleToggleFavorite(bus.id)}
-                                        onFindRouteToStop={handleFindRouteToStop}
+        <>
+            <div id="app-container" className="h-screen w-screen flex flex-col bg-slate-900 text-slate-100 overflow-hidden">
+                <Navbar
+                    appName="UppA"
+                    currentUser={currentUser}
+                    onLogout={handleLogout}
+                    onOpenRanking={() => setIsRankingOpen(true)}
+                    connectedUsersCount={137}
+                    onFocusUserLocation={() => userLocation && setMapCenter(userLocation)}
+                    onToggleMicromobilityModal={() => setIsMicromobilityChatOpen(true)}
+                    onToggleDonationModal={() => setIsDonationModalOpen(true)}
+                    isTopRanked={isTopRanked}
+                    onTogglePanel={handleTogglePanel}
+                    isPanelVisible={isPanelVisible}
+                    hasActivePrivateChat={hasActivePrivateChat}
+                />
+                <main className="main-layout">
+                    <div className={`control-deck transition-all duration-300 ease-in-out ${isPanelVisible ? 'w-full max-w-md' : 'w-0'} overflow-y-auto scrollbar-thin`}>
+                        <div className="space-y-4">
+                            <LocationDashboard 
+                                busLineName={selectedBusLineId ? MOCK_BUS_LINES[selectedBusLineId].lineName : "Red Urbana"}
+                                data={{ weather, reports, schedule: currentSchedule }} 
+                            />
+                            
+                            <CollapsibleSection title="Transporte Público" icon="fas fa-bus-alt" defaultOpen={true}>
+                                <div className="space-y-4">
+                                    <TripPlanner 
+                                        onSetRoute={handleSetRoute} 
+                                        onClearRoute={handleClearRoute} 
+                                        isRouteLoading={isRouteLoading} 
                                     />
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                    
-                    <TripPlanner onSetRoute={handleSetRoute} onClearRoute={handleClearRoute} isRouteLoading={isRouteLoading} />
-                    <UppyAssistant currentUser={currentUser} chatHistory={uppyChatHistory} isLoading={isUppyLoading} isVoiceEnabled={isUppyVoiceEnabled} onSubmit={handleUppySubmit} onToggleVoice={setIsUppyVoiceEnabled} />
-                    <AvailableServices services={micromobilityServices.filter(s => s.isActive && s.isAvailable && !s.isOccupied)} currentUser={currentUser} serviceToConfirm={serviceToConfirm} confirmationCountdown={confirmationCountdown} onInitiateRequest={handleInitiateRequest} onCancelRequest={handleCancelRequest} />
-                    <PointsOfInterest onNavigate={handleNavigateToPOI} />
-                </div>
+                                    <div className="space-y-4">
+                                        {Object.values(buses).map((bus: Bus) => (
+                                            <BusCard
+                                                key={bus.id}
+                                                bus={bus}
+                                                onSelect={() => handleSelectBusLine(bus.id)}
+                                                isSelected={selectedBusLineId === bus.id}
+                                                onReport={handleOpenReportModal}
+                                                details={selectedBusLineId === bus.id ? BUS_LINE_ADDITIONAL_INFO[bus.id] : null}
+                                                isFavorite={currentUser.favoriteBusLineIds.includes(bus.id)}
+                                                onToggleFavorite={() => handleToggleFavorite(bus.id)}
+                                                onFindRouteToStop={handleFindRouteToStop}
+                                                onTriggerApm={handleTriggerApm}
+                                            >
+                                                {selectedBusLineId === bus.id && (
+                                                    <div className="space-y-4">
+                                                        <UppyAssistant 
+                                                            currentUser={currentUser}
+                                                            chatHistory={uppyChatHistory}
+                                                            isLoading={isUppyLoading}
+                                                            isVoiceEnabled={isUppyVoiceEnabled}
+                                                            onSubmit={handleUppySubmit}
+                                                            onToggleVoice={setIsUppyVoiceEnabled}
+                                                        />
+                                                        <ChatWindow
+                                                            busLineId={bus.id}
+                                                            messages={chatMessages.filter(m => m.busLineId === bus.id)}
+                                                            currentUser={currentUser}
+                                                            onSendMessage={handleSendChatMessage}
+                                                            onSendReportFromChat={(reportType, description, busLineId) => {
+                                                                const mockReport: Report = {
+                                                                    id: `report-chat-${Date.now()}`, userId: currentUser.id, userName: currentUser.name, busLineId,
+                                                                    type: reportType, timestamp: Date.now(), description, upvotes: 0, sentiment: 'unknown',
+                                                                };
+                                                                handleSubmitReport(mockReport);
+                                                            }}
+                                                            onToggleCalculator={() => setIsCalculatorModalOpen(true)}
+                                                        />
+                                                    </div>
+                                                )}
+                                            </BusCard>
+                                        ))}
+                                    </div>
+                                </div>
+                            </CollapsibleSection>
 
-                <div className="flex-grow min-w-0 h-full p-4">
-                    <MapDisplay
-                        center={mapCenter}
-                        zoom={DEFAULT_MAP_ZOOM}
-                        buses={buses}
-                        busStops={busStops}
-                        reports={reports}
-                        micromobilityServices={micromobilityServices}
-                        selectedBusLineId={selectedBusLineId}
-                        userLocation={userLocation}
-                        routeResult={routeResult}
-                        isNavigating={!!currentNavigation}
-                        onSelectBusStop={() => {}}
-                        onNavigateToStopLocation={handleFindRouteToStop}
-                        serviceToConfirm={serviceToConfirm}
-                        onInitiateRequest={handleInitiateRequest}
-                    />
-                     {currentNavigation && (
-                        <NavigationDisplay
-                            currentStep={currentNavigation.steps[currentNavigation.currentStepIndex]}
-                            onEndNavigation={endNavigation} isMuted={isMuted} onToggleMute={() => setIsMuted(prev => !prev)}
-                            distanceToNextManeuver={distanceToNextManeuver}
+                            <CollapsibleSection title="Red de Micromovilidad" icon="fas fa-satellite-dish">
+                                <div className="space-y-4">
+                                    <MicromobilityChat 
+                                    isOpen={isMicromobilitySectionOpen}
+                                    onToggle={() => setIsMicromobilitySectionOpen(!isMicromobilitySectionOpen)}
+                                    hasAvailableServices={availableMicromobilityServices.length > 0}
+                                    onOpenChat={() => setIsMicromobilityChatOpen(true)}
+                                    />
+                                    <RankingTable
+                                    services={micromobilityServices}
+                                    currentUser={currentUser}
+                                    />
+                                    <AvailableServices
+                                        services={availableMicromobilityServices}
+                                        currentUser={currentUser}
+                                        serviceToConfirm={serviceToConfirm}
+                                        confirmationCountdown={confirmationCountdown}
+                                        onInitiateRequest={handleInitiateRequest}
+                                        onCancelRequest={handleCancelRequest}
+                                    />
+                                </div>
+                            </CollapsibleSection>
+
+                            <CollapsibleSection title="Explorar" icon="fas fa-compass">
+                                <PointsOfInterest onNavigate={handleNavigateToPOI} />
+                            </CollapsibleSection>
+                        </div>
+                    </div>
+
+                    <div className="flex-grow min-w-0 relative">
+                        <MapDisplay
+                            center={mapCenter}
+                            zoom={DEFAULT_MAP_ZOOM}
+                            buses={buses}
+                            busStops={busStops}
+                            reports={reports}
+                            micromobilityServices={micromobilityServices}
+                            selectedBusLineId={selectedBusLineId}
+                            userLocation={userLocation}
+                            routeResult={routeResult}
+                            isNavigating={!!currentNavigation}
+                            serviceToConfirm={serviceToConfirm}
+                            onInitiateRequest={handleInitiateRequest}
+                            onSelectBusStop={() => {}}
+                            onNavigateToStopLocation={handleFindRouteToStop}
+                        />
+                        {currentNavigation && (
+                            <NavigationDisplay 
+                                currentStep={currentNavigation.steps[currentNavigation.currentStepIndex]}
+                                onEndNavigation={endNavigation}
+                                isMuted={isMuted}
+                                onToggleMute={() => setIsMuted(!isMuted)}
+                                distanceToNextManeuver={distanceToNextManeuver}
+                            />
+                        )}
+                        {routeResult && !routeResult.error && (
+                            <TripDetailsPanel
+                                routeResult={routeResult}
+                                aiRouteSummary={aiRouteSummary}
+                                isLoading={isAiSummaryLoading}
+                                onClearRoute={handleClearRoute}
+                                onReport={handleOpenReportModal}
+                                selectedBusLineId={selectedBusLineId}
+                            />
+                        )}
+                    </div>
+                </main>
+                
+                {notification && <ErrorToast notification={notification} onClose={() => setNotification(null)} />}
+                
+                <Modal isOpen={isReportModalOpen} onClose={handleCloseReportModal} title={selectedBusLineId ? `Reportar en ${buses[selectedBusLineId]?.lineName}` : 'Reportar'}>
+                    {selectedBusLineId && (
+                        <ReportForm
+                            busLineId={selectedBusLineId}
+                            currentUser={currentUser}
+                            onSubmit={handleSubmitReport}
+                            onClose={handleCloseReportModal}
                         />
                     )}
-                </div>
-            </main>
-            
-            {routeResult && !routeResult.error && (
-                <TripDetailsPanel
-                    routeResult={routeResult}
-                    aiRouteSummary={aiRouteSummary}
-                    isLoading={isRouteLoading || isAiSummaryLoading}
-                    onClearRoute={handleClearRoute}
-                    onReport={handleOpenReportModal}
-                    selectedBusLineId={selectedBusLineId}
-                />
-            )}
+                </Modal>
 
-            <Modal isOpen={isReportModalOpen} onClose={handleCloseReportModal} title="Transmitir Intel">
-                {selectedBusLineId && <ReportForm busLineId={selectedBusLineId} currentUser={currentUser} onSubmit={handleSubmitReport} onClose={handleCloseReportModal} />}
-            </Modal>
-            <CalculatorModal isOpen={isCalculatorModalOpen} onClose={() => setIsCalculatorModalOpen(false)} />
-            <MicromobilityChatModal 
-                isOpen={isMicromobilityChatOpen} 
-                onClose={() => setIsMicromobilityChatOpen(false)} 
-                messages={globalChatMessages} 
-                currentUser={currentUser} 
-                onSendMessage={handleSendGlobalChatMessage}
-                privateChats={privateChats}
-                onSendPrivateMessage={handleSendPrivateMessage}
-                services={micromobilityServices}
-                onOpenRegistration={() => setIsMicromobilityRegistrationOpen(true)}
-                onToggleAvailability={handleToggleAvailability}
-                onToggleOccupied={(serviceId) => handleToggleOccupied(serviceId, currentUser.id)}
-                onConfirmPayment={handleConfirmPayment}
-             />
-            <Modal isOpen={isMicromobilityRegistrationOpen} onClose={() => setIsMicromobilityRegistrationOpen(false)} title="Registrar Servicio de Micromovilidad">
-                <MicromobilityRegistrationModal currentUser={currentUser} onSubmit={handleRegisterMicromobilityService} onClose={() => setIsMicromobilityRegistrationOpen(false)} />
-            </Modal>
-            <OperatorInsightsModal isOpen={isOperatorInsightsOpen} onClose={() => setIsOperatorInsightsOpen(false)} services={micromobilityServices} />
-            {postTripReviewService && <PostTripReviewModal isOpen={!!postTripReviewService} onClose={() => setPostTripReviewService(null)} onSubmit={handleSubmitReview} service={postTripReviewService} currentUser={currentUser} />}
-            {serviceToConfirm && micromobilityServices.find(s => s.id === serviceToConfirm) && (
-                <RequestConfirmationPanel
-                    service={micromobilityServices.find(s => s.id === serviceToConfirm)!}
-                    countdown={confirmationCountdown}
-                    onCancel={handleCancelRequest}
+                <Modal isOpen={isDonationModalOpen} onClose={() => setIsDonationModalOpen(false)} title="Apoya el Proyecto UppA">
+                    <div className="text-center space-y-4">
+                        <p className="text-slate-300">UppA es un proyecto comunitario. Tu apoyo nos ayuda a mantener y mejorar la red.</p>
+                        <div>
+                            <h4 className="font-semibold text-lg text-cyan-300">Mercado Pago</h4>
+                            <p className="text-slate-200 font-mono bg-slate-800 p-2 rounded-md my-1">{UPPA_MERCADO_PAGO_ALIAS}</p>
+                        </div>
+                        <div>
+                            <h4 className="font-semibold text-lg text-cyan-300">Crypto (Polygon/Celo)</h4>
+                            <p className="text-slate-200 font-mono bg-slate-800 p-2 rounded-md my-1 break-all text-sm">{UPPA_CRYPTO_ADDRESS_EXAMPLE}</p>
+                        </div>
+                        <p className="text-lg font-bold text-white pt-2">¡Gracias por ser parte de la comunidad!</p>
+                    </div>
+                </Modal>
+
+                <Modal isOpen={isMicromobilityRegistrationOpen} onClose={() => setIsMicromobilityRegistrationOpen(false)} title="Registrar Servicio de Micromovilidad">
+                     <MicromobilityRegistrationModal
+                        currentUser={currentUser}
+                        onSubmit={handleRegisterMicromobilityService}
+                        onClose={() => setIsMicromobilityRegistrationOpen(false)}
+                    />
+                </Modal>
+                
+                 <MicromobilityChatModal 
+                    isOpen={isMicromobilityChatOpen}
+                    onClose={() => setIsMicromobilityChatOpen(false)}
+                    messages={globalChatMessages}
+                    currentUser={currentUser}
+                    onSendMessage={handleSendGlobalChatMessage}
+                    privateChats={privateChats}
+                    onSendPrivateMessage={handleSendPrivateMessage}
+                    services={micromobilityServices}
+                    onOpenRegistration={() => {
+                        setIsMicromobilityChatOpen(false);
+                        setIsMicromobilityRegistrationOpen(true);
+                    }}
+                    onToggleAvailability={handleToggleAvailability}
+                    onToggleOccupied={(serviceId) => handleToggleOccupied(serviceId, currentUser.id)}
+                    onConfirmPayment={handleConfirmPayment}
+                 />
+
+                {postTripReviewService && (
+                    <PostTripReviewModal 
+                        isOpen={!!postTripReviewService}
+                        onClose={() => setPostTripReviewService(null)}
+                        onSubmit={handleSubmitReview}
+                        service={postTripReviewService}
+                        currentUser={currentUser}
+                    />
+                )}
+
+                <OperatorInsightsModal
+                    isOpen={isOperatorInsightsOpen}
+                    onClose={() => setIsOperatorInsightsOpen(false)}
+                    services={micromobilityServices}
                 />
-            )}
-            {notification && <ErrorToast notification={notification} onClose={() => setNotification(null)} />}
+                
+                <CalculatorModal isOpen={isCalculatorModalOpen} onClose={() => setIsCalculatorModalOpen(false)} />
+                
+                {serviceForConfirmation && (
+                    <RequestConfirmationPanel 
+                        service={serviceForConfirmation}
+                        countdown={confirmationCountdown}
+                        onCancel={handleCancelRequest}
+                    />
+                )}
+                
+                <ApmModal
+                    isOpen={apmState.isOpen}
+                    onClose={handleApmClose}
+                    status={apmState.status}
+                    results={apmState.results}
+                    onSelectService={handleApmSelectService}
+                />
+
+            </div>
             <AccessibilityControls />
-        </div>
+        </>
     );
 };
 

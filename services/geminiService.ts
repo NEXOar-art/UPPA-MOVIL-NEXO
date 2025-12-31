@@ -120,7 +120,7 @@ export const getUppyResponse = async (
   }
 
   try {
-// FIX: Moved `systemInstruction`, `tools`, and `temperature` into the `config` object to align with the Gemini API guidelines.
+    // FIX: Moved `systemInstruction`, `tools`, and `temperature` into the `config` object to align with the Gemini API guidelines.
     const response: GenerateContentResponse = await ai.models.generateContent({
         model: GEMINI_TEXT_MODEL,
         contents: history,

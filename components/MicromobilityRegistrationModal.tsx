@@ -1,5 +1,4 @@
 
-
 import React, { useState, useCallback } from 'react';
 import { MicromobilityServiceType, UserProfile, Coordinates } from '../types';
 import { MICROMOBILITY_PRICING, MICROMOBILITY_TERMS_CONTENT } from '../constants';
@@ -41,7 +40,7 @@ const getCurrentLocationPromise = (): Promise<Coordinates | null> => {
         console.warn(`Error getting location (Code ${error.code}): ${error.message}`);
         resolve(null);
       },
-      { timeout: 7000, enableHighAccuracy: true }
+      { timeout: 15000, enableHighAccuracy: false }
     );
   });
 };
@@ -110,7 +109,7 @@ const MicromobilityRegistrationModal: React.FC<MicromobilityRegistrationModalPro
     setIsFetchingLocation(false);
   };
 
-  const handleSubmit = useCallback(async (event: React.FormEvent) => {
+  const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     if (!serviceName.trim() || !vehicleModel.trim() || !vehicleColor.trim() || !whatsapp.trim()) {
       alert("Por favor, completa todos los campos del vehículo y contacto.");
@@ -139,8 +138,7 @@ const MicromobilityRegistrationModal: React.FC<MicromobilityRegistrationModalPro
     };
     
     onSubmit(formData);
-    setIsSubmitting(false);
-  }, [serviceName, type, vehicleModel, vehicleColor, whatsapp, location, address, petsAllowed, subscriptionDurationHours, onSubmit]);
+  };
 
   const currentPrice = subscriptionDurationHours ? MICROMOBILITY_PRICING[type][subscriptionDurationHours] : null;
   const hasEnoughTokens = currentPrice !== null ? currentUser.tokens >= currentPrice : true;
@@ -250,7 +248,7 @@ const MicromobilityRegistrationModal: React.FC<MicromobilityRegistrationModalPro
             className="w-full mb-2 ps-button flex items-center justify-center"
         >
             {isFetchingLocation ? (
-                <><svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Obteniendo...</>
+                <><svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Obteniendo...</>
             ) : (
                 <><i className="fas fa-map-marker-alt mr-2"></i> Usar Ubicación Actual</>
             )}
@@ -265,7 +263,8 @@ const MicromobilityRegistrationModal: React.FC<MicromobilityRegistrationModalPro
       <div className="flex justify-end space-x-3 pt-3">
         <button
             type="button"
-            onClick={onClose}
+            // FIX: Ensure onClose is called with zero arguments by wrapping it in an arrow function.
+            onClick={() => onClose()}
             disabled={isSubmitting}
             className="ps-button"
         >

@@ -1,3 +1,4 @@
+
 import { ReportType, Bus, MicromobilityServiceType, Coordinates, BusStop, BusLineDetails, BadgeId } from './types';
 
 
@@ -6,7 +7,7 @@ export const API_KEY_ERROR_MESSAGE = "La variable de entorno API_KEY para Gemini
 export const LOCATIONIQ_API_KEY = "pk.ce5c15b8df54102d8cb22ea3cbabd14c";
 export const OPENWEATHER_API_KEY = "0a49b2d34b5b7e8b65a6bd7da25e4bd8";
 export const SUBE_URL = "https://tarjetasube.sube.gob.ar/SubeWeb/Webforms/Account/Views/login.aspx";
-export const UPPA_MERCADO_PAGO_ALIAS = "uppa.colectivo.mp"; // Example Mercado Pago Alias for UppA
+export const UPPA_MERCADO_PAGO_ALIAS = "nexoart"; // Alias actualizado para habilitación de servicios
 export const UPPA_CRYPTO_ADDRESS_EXAMPLE = "0x123abcDEF456GHI789jklMNO012pQrS345"; // Example Crypto Address
 export const MAX_MICROMOBILITY_SERVICES_PER_PROVIDER = 10;
 
@@ -361,8 +362,9 @@ Teléfonos y Direcciones de Interés - Campana y Zárate:
 `;
 
 
-export const GEMINI_TEXT_MODEL = 'gemini-2.5-flash';
-export const GEMINI_CHAT_DRAFT_MODEL = 'gemini-2.5-flash';
+// Updated to gemini-3-flash-preview for Basic Text Tasks
+export const GEMINI_TEXT_MODEL = 'gemini-3-flash-preview';
+export const GEMINI_CHAT_DRAFT_MODEL = 'gemini-3-flash-preview';
 
 export const BADGE_DEFINITIONS: Record<BadgeId, { name: string; description: string; icon: string; }> = {
   [BadgeId.REPORTER_NOVICE]: {

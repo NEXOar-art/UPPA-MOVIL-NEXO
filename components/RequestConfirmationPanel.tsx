@@ -11,7 +11,7 @@ const RequestConfirmationPanel: React.FC<RequestConfirmationPanelProps> = ({ ser
     const progressPercentage = (countdown / 120) * 100;
 
     return (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-lg animate-[preloader-fade-in_0.5s_ease-out]">
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[4000] w-[95%] max-w-lg animate-[preloader-fade-in_0.5s_ease-out]">
             <div className="ps-card p-4 bg-slate-900/90 border-2 border-yellow-500/50">
                 <div className="flex items-center justify-between gap-4">
                     <div>

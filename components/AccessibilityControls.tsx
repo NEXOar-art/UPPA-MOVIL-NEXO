@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
 
@@ -13,7 +12,7 @@ const AccessibilityControls: React.FC = () => {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-4 right-4 z-50 w-14 h-14 bg-cyan-500/80 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-cyan-400 transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-300"
+        className="fixed bottom-4 right-4 z-[4000] w-14 h-14 bg-cyan-500/80 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-cyan-400 transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-300"
         aria-label="Open accessibility settings"
       >
         <i className="fas fa-universal-access text-2xl"></i>
@@ -22,7 +21,7 @@ const AccessibilityControls: React.FC = () => {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 ps-card p-4 w-64 animate-[preloader-fade-in_0.3s_ease-out]">
+    <div className="fixed bottom-4 right-4 z-[4000] ps-card p-4 w-64 animate-[preloader-fade-in_0.3s_ease-out]">
       <div className="flex justify-between items-center mb-3">
         <h3 className="font-bold text-cyan-300 font-orbitron">{t('accessibilitySettings')}</h3>
         <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-white" aria-label="Close accessibility settings">

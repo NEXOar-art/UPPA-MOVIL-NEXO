@@ -1,5 +1,4 @@
 
-
 import React, { useState, useCallback, useRef } from 'react';
 import { ReportType, Report, UserProfile, Coordinates } from '../types'; // Added Coordinates
 import { REPORT_TYPE_ICONS, DEFAULT_USER_ID, DEFAULT_USER_NAME, REPORT_FORM_EMOJIS, REPORT_TYPE_TRANSLATIONS } from '../constants';
@@ -31,7 +30,7 @@ const getCurrentLocation = (): Promise<Coordinates | null> => {
         console.warn(`Error getting location in ReportForm (Code ${error.code}): ${error.message}`);
         resolve(null); // Resolve with null on error, so form submission can continue
       },
-      { timeout: 5000 } // Add a timeout to avoid blocking indefinitely
+      { timeout: 10000, enableHighAccuracy: false } // Add a timeout to avoid blocking indefinitely
     );
   });
 };

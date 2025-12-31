@@ -41,8 +41,9 @@ const MicromobilityChatModal: React.FC<MicromobilityChatModalProps> = ({
   const myServices = services.filter(s => s.providerId === currentUser.id);
   const [activeChatId, setActiveChatId] = useState<string>('global');
 
-  const myPrivateChats = Object.entries(privateChats).filter(([chatId, chat]) =>
-    chat.participants.some(p => p.id === currentUser.id)
+  // FIX: Explicitly type the destructured `chat` as `PrivateChat` because `Object.entries` can be inferred as `[string, unknown][]`.
+  const myPrivateChats = Object.entries(privateChats).filter(([, chat]) =>
+    (chat as PrivateChat).participants.some(p => p.id === currentUser.id)
   );
 
   const activeMessages = activeChatId === 'global'
@@ -76,13 +77,12 @@ const MicromobilityChatModal: React.FC<MicromobilityChatModalProps> = ({
                 ) : (
                     <div className="space-y-2">
                         {myServices.map(service => (
-                            // FIX: Removed `chatMessages` and `onSendMessage` props as they are not defined in `MicromobilityServiceCardProps`.
                             <MicromobilityServiceCard 
                                 key={service.id}
                                 service={service}
                                 isOwnService={true}
                                 onToggleAvailability={onToggleAvailability}
-                                onToggleOccupied={(serviceId) => onToggleOccupied(serviceId)}
+                                onToggleOccupied={onToggleOccupied}
                                 onConfirmPayment={onConfirmPayment}
                                 currentUser={currentUser}
                             />
@@ -104,16 +104,20 @@ const MicromobilityChatModal: React.FC<MicromobilityChatModalProps> = ({
                 >
                     Global
                 </button>
-                {myPrivateChats.map(([chatId, chat]) => (
-                     <button
-                        key={chatId}
-                        onClick={() => setActiveChatId(chatId)}
-                        className={`flex-1 text-sm py-1 rounded transition-colors truncate ${activeChatId === chatId ? 'bg-purple-500 text-white' : 'hover:bg-slate-700'}`}
-                        title={`Chat con ${getChatPartnerName(chat)}`}
-                    >
-                        {getChatPartnerName(chat)}
-                    </button>
-                ))}
+                {myPrivateChats.map(([chatId, chat]) => {
+                    // FIX: Assert the type of `chat` to `PrivateChat` to resolve inference issues with `Object.entries`.
+                    const privateChat = chat as PrivateChat;
+                    return (
+                        <button
+                            key={chatId}
+                            onClick={() => setActiveChatId(chatId)}
+                            className={`flex-1 text-sm py-1 rounded transition-colors truncate ${activeChatId === chatId ? 'bg-purple-500 text-white' : 'hover:bg-slate-700'}`}
+                            title={`Chat con ${getChatPartnerName(privateChat)}`}
+                        >
+                            {getChatPartnerName(privateChat)}
+                        </button>
+                    )
+                })}
              </div>
         </div>
 

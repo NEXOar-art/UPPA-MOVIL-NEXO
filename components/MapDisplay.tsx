@@ -1,13 +1,11 @@
+
+
 import React, { useEffect, useRef, useMemo } from 'react';
 import L from 'leaflet';
-import 'leaflet.heat';
 import { Bus, BusStop, Coordinates, Report, RouteResult, MicromobilityService, MicromobilityServiceType } from '../types';
 import { MICROMOBILITY_SERVICE_ICONS } from '../constants';
 
-// Declare the heatLayer on the L namespace to satisfy TypeScript
-declare module 'leaflet' {
-  function heatLayer(latlngs: L.LatLngExpression[], options?: any): any;
-}
+// FIX: Removed unused 'leaflet.heat' import and its module augmentation. This was causing a build error, and the heatmap feature was not implemented.
 
 // Custom Icon definitions
 const createUserLocationIcon = () => {
@@ -128,7 +126,8 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
   // Update bus markers
   useEffect(() => {
     busLayerRef.current.clearLayers();
-    Object.values(buses).forEach(bus => {
+    // FIX: Explicitly type `bus` as `Bus` because `Object.values` can be inferred as `unknown[]`.
+    Object.values(buses).forEach((bus: Bus) => {
       const isSelected = bus.id === selectedBusLineId;
       const marker = L.marker([bus.currentLocation.lat, bus.currentLocation.lng], {
         icon: createBusIcon(bus, isSelected)
@@ -234,9 +233,35 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
     }
   }, [routeResult]);
 
+  const handleZoomIn = () => {
+    mapRef.current?.zoomIn();
+  };
+
+  const handleZoomOut = () => {
+    mapRef.current?.zoomOut();
+  };
+
   return (
       <div className="w-full h-full rounded-lg overflow-hidden border-2 border-blue-500/30 relative">
           <div ref={mapContainerRef} className="w-full h-full" />
+          <div className="absolute top-4 left-4 z-[1000] flex flex-col space-y-2">
+            <button
+              onClick={handleZoomIn}
+              className="ps-button w-10 h-10 flex items-center justify-center"
+              aria-label="Acercar mapa"
+              title="Acercar"
+            >
+              <i className="fas fa-plus"></i>
+            </button>
+            <button
+              onClick={handleZoomOut}
+              className="ps-button w-10 h-10 flex items-center justify-center"
+              aria-label="Alejar mapa"
+              title="Alejar"
+            >
+              <i className="fas fa-minus"></i>
+            </button>
+          </div>
       </div>
   );
 };

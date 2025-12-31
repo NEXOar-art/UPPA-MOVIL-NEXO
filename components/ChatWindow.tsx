@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ChatMessage, UserProfile, ReportType, Coordinates } from '../types';
 import { CHAT_EMOJIS, DEFAULT_USER_ID, DEFAULT_USER_NAME, CHAT_ACTION_ICONS, SUBE_URL } from '../constants';
@@ -25,7 +26,7 @@ const getCurrentChatLocation = (): Promise<Coordinates | null> => {
         console.warn(`Error getting location for chat (Code ${error.code}): ${error.message}`);
         resolve(null);
       },
-      { timeout: 5000 }
+      { timeout: 10000, enableHighAccuracy: false }
     );
   });
 };
