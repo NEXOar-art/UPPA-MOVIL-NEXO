@@ -1,6 +1,7 @@
+
 import React, { useState, useCallback } from 'react';
 import { MicromobilityService, MicromobilityServiceType, GlobalChatMessage, UserProfile, RatingHistoryEntry } from '../types';
-import { MICROMOBILITY_SERVICE_ICONS, UPPA_MERCADO_PAGO_ALIAS, UPPA_CRYPTO_ADDRESS_EXAMPLE } from '../constants';
+import { MICROMOBILITY_SERVICE_ICONS, UPPA_MERCADO_PAGO_ALIAS } from '../constants';
 import MicromobilityChatWindow from './MicromobilityChatWindow';
 import LoadingSpinner from './LoadingSpinner';
 import { getReviewSummary } from '../services/geminiService';
@@ -186,43 +187,40 @@ const MicromobilityServiceCard: React.FC<MicromobilityServiceCardProps> = ({
       {isOwnService && service.isPendingPayment && (
         <div className="mt-3 p-3 bg-yellow-900/60 rounded-md border border-yellow-700/50">
           <h5 className="text-sm font-semibold text-yellow-200 mb-2">Activar Servicio</h5>
-          <p className="text-xs text-yellow-300 mb-1">
-            Realiza un pago simbólico (simulado) para activar:
-          </p>
-          <ul className="text-xs text-yellow-300 list-disc list-inside mb-3 space-y-0.5">
-            <li>Mercado Pago Alias: <strong className="text-yellow-100">{UPPA_MERCADO_PAGO_ALIAS}</strong></li>
-            <li>Crypto (Ej: Celo/Polygon): <br/><strong className="text-yellow-100 break-all text-xs">{UPPA_CRYPTO_ADDRESS_EXAMPLE}</strong></li>
-          </ul>
+          <div className="bg-black/20 p-2 rounded border border-yellow-500/20 mb-3">
+            <p className="text-[10px] text-yellow-300 uppercase font-black mb-1">Paso 1: Abonar Entrada</p>
+            <p className="text-xs text-white">Mercado Pago Alias: <strong className="text-yellow-400 select-all">{UPPA_MERCADO_PAGO_ALIAS}</strong></p>
+          </div>
 
           {!showPinInput ? (
             <button
               onClick={handleInitialConfirmPaymentClick}
-              className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-semibold py-1.5 px-3 rounded-md shadow-sm transition-colors text-xs flex items-center justify-center space-x-2"
+              className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-black py-2.5 px-3 rounded-md shadow-lg transition-all text-[10px] flex items-center justify-center space-x-2 uppercase tracking-widest"
               aria-label="Confirmar que el pago ha sido realizado e ingresar PIN"
             >
-              <i className="fas fa-money-check-alt mr-1"></i> He Pagado, Ingresar PIN
+              <i className="fas fa-money-check-alt"></i> <span>He Pagado, Ingresar PIN</span>
             </button>
           ) : (
-            <div className="space-y-2 mt-3">
+            <div className="space-y-3 mt-1 animate-[preloader-fade-in_0.3s_ease-out]">
               <div>
-                <label htmlFor={`pin-${service.id}`} className="block text-xs font-medium text-yellow-200 mb-0.5">Ingresa PIN de Activación:</label>
+                <label htmlFor={`pin-${service.id}`} className="block text-[10px] font-black text-yellow-200 mb-1 uppercase tracking-wider">PIN de Activación:</label>
                 <input
                   type="password"
                   id={`pin-${service.id}`}
                   value={pinValue}
                   onChange={(e) => setPinValue(e.target.value)}
                   maxLength={4}
-                  className="w-full p-2 bg-yellow-900 border border-yellow-700 rounded-md text-yellow-100 placeholder-yellow-500 text-sm focus:ring-1 focus:ring-yellow-400 focus:border-yellow-400"
-                  placeholder="PIN de 4 dígitos"
+                  className="w-full p-2.5 bg-black/60 border border-yellow-500/40 rounded-lg text-yellow-100 placeholder-yellow-800 text-center font-mono text-lg tracking-[0.5em] focus:ring-2 focus:ring-yellow-400 outline-none"
+                  placeholder="****"
                   aria-label="PIN de activación"
                   autoComplete="off"
                 />
               </div>
-              {pinError && <p className="text-xs text-red-300 bg-red-900 p-1 rounded">{pinError}</p>}
-              <div className="flex space-x-2">
+              {pinError && <p className="text-[10px] text-red-400 bg-red-500/10 p-2 rounded border border-red-500/20 text-center font-bold">{pinError}</p>}
+              <div className="flex gap-2">
                 <button
                     onClick={handleCancelPinInput}
-                    className="flex-1 bg-slate-500 hover:bg-slate-600 text-white font-semibold py-1.5 px-3 rounded-md shadow-sm transition-colors text-xs"
+                    className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2 px-3 rounded-lg text-[10px] uppercase transition-colors"
                     aria-label="Cancelar ingreso de PIN"
                     >
                     Cancelar
@@ -230,10 +228,10 @@ const MicromobilityServiceCard: React.FC<MicromobilityServiceCardProps> = ({
                 <button
                   onClick={handleVerifyPinAndActivate}
                   disabled={pinValue.length !== 4}
-                  className="flex-1 bg-green-500 hover:bg-green-600 text-white font-semibold py-1.5 px-3 rounded-md shadow-sm transition-colors text-xs flex items-center justify-center space-x-1 disabled:opacity-50"
+                  className="flex-1 bg-green-500 hover:bg-green-600 text-white font-black py-2 px-3 rounded-lg text-[10px] uppercase tracking-widest shadow-lg shadow-green-500/20 disabled:opacity-30 transition-all"
                   aria-label="Verificar PIN y Activar Servicio"
                 >
-                  <i className="fas fa-check-circle mr-1"></i> Verificar y Activar
+                  Confirmar
                 </button>
               </div>
             </div>
