@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Bus, BusLineDetails, Coordinates } from '../types';
 
@@ -21,6 +22,7 @@ const BusCard: React.FC<BusCardProps> = ({ bus, onSelect, isSelected, onReport, 
     const handleFavoriteClick = (e: React.MouseEvent) => {
         e.stopPropagation();
         onToggleFavorite();
+        audioService.playConfirmationSound();
     };
 
     const handleTabClick = (tab: 'intel' | 'ruta' | 'reporte') => {
@@ -31,46 +33,39 @@ const BusCard: React.FC<BusCardProps> = ({ bus, onSelect, isSelected, onReport, 
     };
     
     const tabButtonStyle = (isActive: boolean) => 
-        `flex-1 text-sm py-2 rounded transition-colors flex items-center justify-center space-x-2 ${
-            isActive ? 'bg-cyan-500 text-white shadow-[0_0_8px_var(--ps-cyan)]' : 'hover:bg-slate-700 text-slate-300'
+        `flex-1 text-[10px] uppercase font-bold py-2 rounded transition-all flex items-center justify-center space-x-2 ${
+            isActive ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'hover:bg-slate-700 text-slate-400'
         }`;
 
     return (
-        <div className={`ps-card p-4 border-2 transition-all duration-300 ${isSelected ? 'border-cyan-400 shadow-lg shadow-cyan-500/10' : 'border-transparent hover:border-blue-500/50 cursor-pointer'}`} onClick={!isSelected ? onSelect : undefined}>
+        <div className={`ps-card p-4 border-2 transition-all duration-300 ${isSelected ? 'border-cyan-400 shadow-xl bg-slate-800/80' : 'border-white/5 hover:border-blue-500/30 cursor-pointer'}`} onClick={!isSelected ? onSelect : undefined}>
             <div className="flex justify-between items-start">
-                <div className="flex items-center space-x-3">
-                    <div className={`w-2 h-8 rounded-full ${bus.color} mt-1`}></div>
-                    <div>
-                        <h3 className="text-xl font-bold font-orbitron">{bus.lineName}</h3>
-                        <p className="text-sm text-slate-400">{bus.description}</p>
+                <div className="flex items-center space-x-3 overflow-hidden">
+                    <div className={`w-1.5 h-10 rounded-full ${bus.color} flex-shrink-0 shadow-[0_0_8px_currentColor]`}></div>
+                    <div className="overflow-hidden">
+                        <h3 className="text-lg font-bold font-orbitron truncate">{bus.lineName}</h3>
+                        <p className="text-xs text-slate-500 truncate">{bus.description}</p>
                     </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                    <button
-                        onClick={handleFavoriteClick}
-                        className={`p-2 rounded-full w-10 h-10 flex items-center justify-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900
-                            ${isFavorite
-                                ? 'text-yellow-400 hover:text-yellow-300 focus:ring-yellow-400'
-                                : 'text-slate-400 hover:text-white focus:ring-cyan-400'
-                            }`}
-                        title={isFavorite ? 'Eliminar de favoritos' : 'Añadir a favoritos'}
-                        aria-label={isFavorite ? 'Eliminar de favoritos' : 'Añadir a favoritos'}
-                    >
-                        <i className={`${isFavorite ? 'fas' : 'far'} fa-star text-lg ${isFavorite ? 'rank-glow text-yellow-400' : ''}`}></i>
-                    </button>
-                </div>
+                <button
+                    onClick={handleFavoriteClick}
+                    className={`p-2 rounded-lg transition-all ${isFavorite ? 'text-yellow-400 scale-110' : 'text-slate-600 hover:text-yellow-400/50'}`}
+                    title={isFavorite ? 'Quitar de favoritos' : 'Añadir a favoritos'}
+                >
+                    <i className={`${isFavorite ? 'fas' : 'far'} fa-star text-xl`}></i>
+                </button>
             </div>
 
             {isSelected && (
-                <div className="mt-4 pt-4 border-t border-blue-500/20 space-y-4">
+                <div className="mt-4 pt-4 border-t border-white/5 space-y-4 animate-[preloader-fade-in_0.3s_ease-out]">
                     <button 
                         onClick={onTriggerApm} 
-                        className="w-full ps-button bg-amber-600/80 hover:bg-amber-700 border-amber-500/80 hover:border-amber-500 ps-button-glow-effect text-base py-3"
+                        className="w-full ps-button bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/40 text-amber-400 text-[10px] py-2 flex items-center justify-center gap-2"
                     >
-                        <i className="fas fa-exclamation-triangle mr-2"></i> ¿No hay colectivo? Activar APM
+                        <i className="fas fa-exclamation-triangle"></i> ¿SIN COLECTIVO? ACTIVAR APM
                     </button>
 
-                    <div className="flex space-x-1 bg-slate-800/50 p-1 rounded-md">
+                    <div className="flex space-x-1 bg-black/20 p-1 rounded-lg">
                         <button onClick={() => handleTabClick('intel')} className={tabButtonStyle(activeTab === 'intel')}>
                             <i className="fas fa-satellite-dish"></i><span>Intel</span>
                         </button>
@@ -82,65 +77,60 @@ const BusCard: React.FC<BusCardProps> = ({ bus, onSelect, isSelected, onReport, 
                         </button>
                     </div>
 
-                    <div className="animate-[preloader-fade-in_0.5s_ease-out]">
+                    <div className="min-h-[100px]">
                         {activeTab === 'intel' && (
-                            <div className="space-y-4 max-h-[450px] overflow-y-auto scrollbar-thin pr-2 -mr-2">{children}</div>
+                            <div className="space-y-4 max-h-[300px] overflow-y-auto scrollbar-thin pr-2">{children}</div>
                         )}
                         {activeTab === 'ruta' && details && (
-                            <div className="space-y-3 text-xs text-slate-300 max-h-[450px] overflow-y-auto scrollbar-thin pr-2 -mr-2">
-                                <div className="p-3 bg-slate-900/50 rounded-lg border border-blue-500/20">
-                                    <p><strong>Operador:</strong> {details.operator || 'No disponible'}</p>
-                                    <p><strong>Info:</strong> {details.generalDescription || 'No disponible'}</p>
+                            <div className="space-y-3 text-xs text-slate-400 max-h-[300px] overflow-y-auto scrollbar-thin pr-2">
+                                <div className="p-3 bg-black/20 rounded-lg border border-white/5">
+                                    <p className="mb-1"><strong className="text-cyan-400">Operador:</strong> {details.operator}</p>
+                                    <p className="leading-relaxed">{details.generalDescription}</p>
                                 </div>
 
                                 {details.specificRoutes.map((route, index) => (
-                                    <div key={index} className="p-3 bg-slate-900/50 rounded-lg border border-blue-500/20">
-                                        <h4 className="font-bold text-sm text-cyan-300 font-orbitron mb-2">Recorrido: {route.name}</h4>
-                                        <div className="grid grid-cols-2 gap-2 text-center mb-3">
-                                            <div className="bg-slate-800 p-2 rounded">
-                                                <p className="font-orbitron text-cyan-400">{route.stopsCount}</p>
-                                                <p className="text-slate-400 text-[10px] uppercase">Paradas</p>
+                                    <div key={index} className="p-3 bg-black/20 rounded-lg border border-white/5">
+                                        <h4 className="font-bold text-cyan-300 font-orbitron mb-2 uppercase text-[10px]">Trazado: {route.name}</h4>
+                                        <div className="grid grid-cols-2 gap-2 mb-3">
+                                            <div className="bg-white/5 p-2 rounded text-center">
+                                                <p className="font-orbitron text-white text-base">{route.stopsCount}</p>
+                                                <p className="text-[9px] uppercase tracking-widest text-slate-500">Paradas</p>
                                             </div>
-                                            <div className="bg-slate-800 p-2 rounded">
-                                                <p className="font-orbitron text-cyan-400">{route.approxDuration}</p>
-                                                <p className="text-slate-400 text-[10px] uppercase">Duración</p>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <button
-                                                onClick={() => setIsStopsVisible(!isStopsVisible)}
-                                                className="w-full ps-button text-xs py-1.5 flex justify-between items-center"
-                                                aria-expanded={isStopsVisible}
-                                            >
-                                                <span>Paradas Clave</span>
-                                                <i className={`fas fa-chevron-down transition-transform duration-300 ${isStopsVisible ? 'rotate-180' : ''}`}></i>
-                                            </button>
-                                            <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isStopsVisible ? 'max-h-96 mt-2' : 'max-h-0'}`}>
-                                                <ul className="space-y-1 text-xs pt-2 border-t border-blue-500/10">
-                                                    {route.keyStops.map((stop, stopIndex) => (
-                                                        <li key={stopIndex} className="text-slate-400 flex items-start p-1 rounded hover:bg-slate-800">
-                                                            <i className="fas fa-map-pin text-blue-400 mr-2 mt-0.5 w-3 text-center"></i>
-                                                            <button onClick={() => onFindRouteToStop(stop.location)} className="text-left text-blue-300 hover:text-cyan-300 hover:underline focus:outline-none">
-                                                                {stop.name}
-                                                            </button>
-                                                        </li>
-                                                    ))}
-                                                </ul>
+                                            <div className="bg-white/5 p-2 rounded text-center">
+                                                <p className="font-orbitron text-white text-base">{route.approxDuration}</p>
+                                                <p className="text-[9px] uppercase tracking-widest text-slate-500">Estimado</p>
                                             </div>
                                         </div>
+                                        <button
+                                            onClick={() => setIsStopsVisible(!isStopsVisible)}
+                                            className="w-full text-[10px] font-bold text-slate-400 hover:text-white transition-colors flex justify-between items-center"
+                                        >
+                                            PUNTOS DE CONTROL
+                                            <i className={`fas fa-chevron-down transition-transform ${isStopsVisible ? 'rotate-180' : ''}`}></i>
+                                        </button>
+                                        {isStopsVisible && (
+                                            <ul className="mt-2 space-y-1 pt-2 border-t border-white/5">
+                                                {route.keyStops.map((stop, sIdx) => (
+                                                    <li key={sIdx} className="flex items-center gap-2 py-1 px-2 rounded hover:bg-white/5">
+                                                        <i className="fas fa-map-pin text-cyan-500 text-[10px]"></i>
+                                                        <span className="text-[11px]">{stop.name}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
                                     </div>
                                 ))}
                             </div>
                         )}
                         {activeTab === 'reporte' && (
-                           <div className="text-center p-4 bg-slate-900/50 rounded-lg">
-                                <i className="fas fa-bullhorn text-4xl text-cyan-400 mb-3"></i>
-                                <h4 className="font-bold text-lg text-white mb-2">Aportar Intel a la Red</h4>
-                                <p className="text-slate-400 text-sm mb-4">
-                                    Reporta demoras, incidentes, o el estado del servicio para ayudar a toda la comunidad.
+                           <div className="text-center py-6 bg-black/20 rounded-lg border border-white/5">
+                                <i className="fas fa-bullhorn text-3xl text-cyan-400 mb-3 opacity-50"></i>
+                                <h4 className="font-bold text-sm text-white mb-2">APORTAR INTEL</h4>
+                                <p className="text-[11px] text-slate-500 px-4 mb-4 leading-relaxed">
+                                    Reporta demoras, incidentes, o el estado del servicio para la comunidad.
                                 </p>
-                                <button onClick={onReport} className="ps-button active">
-                                    <i className="fas fa-plus-circle mr-2"></i> Crear Nuevo Reporte
+                                <button onClick={onReport} className="ps-button active py-2 text-[10px]">
+                                    <i className="fas fa-plus mr-2"></i>NUEVO REPORTE
                                 </button>
                             </div>
                         )}
@@ -152,5 +142,5 @@ const BusCard: React.FC<BusCardProps> = ({ bus, onSelect, isSelected, onReport, 
 };
 
 export const PostTripReviewModal: React.FC<any> = () => null;
-
 export default BusCard;
+import { audioService } from '../services/audioService';

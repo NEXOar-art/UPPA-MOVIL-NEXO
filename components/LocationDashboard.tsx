@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Report, ScheduleDetail } from '../types';
 import { REPORT_TYPE_TRANSLATIONS } from '../constants';
@@ -31,7 +32,7 @@ const formatRelativeTime = (timestamp: number): string => {
   if (minutes < 60) return `hace ${minutes} min`;
 
   const hours = Math.floor(minutes / 60);
-  return `hace ${hours} h`; // Should not be reached with 10min filter, but good fallback.
+  return `hace ${hours} h`;
 }
 
 const truncateText = (text: string, maxLength: number): string => {
@@ -78,18 +79,43 @@ const MissionBriefingCarousel: React.FC<MissionBriefingCarouselProps> = ({ data,
     // --- DYNAMIC INTEL SLIDES ---
     const TEN_MINUTES_MS = 10 * 60 * 1000;
     const recentReports = data.reports.filter(r => (Date.now() - r.timestamp) < TEN_MINUTES_MS);
+    const isCriticalCongestion = recentReports.length > 2;
 
     if (recentReports.length > 0) {
+        // Alerta Crítica Sugiriendo Transporte Alternativo si hay saturación de reportes
+        if (isCriticalCongestion) {
+            baseSlides.push({
+                id: 'critical-transport-alert',
+                icon: 'fas fa-exclamation-triangle',
+                iconColor: 'text-red-500 animate-pulse',
+                title: 'Protocolo de Emergencia',
+                content: (
+                    <div className="flex flex-col items-center justify-center text-center px-2">
+                        <i className="fas fa-motorcycle text-red-500 text-3xl mb-1 animate-bounce"></i>
+                        <p className="text-xs font-black text-red-500 uppercase tracking-tighter">Saturación Detectada</p>
+                        <p className="text-[10px] text-slate-100 font-bold mt-1 leading-tight">
+                            Se recomienda <span className="text-cyan-400">TRANSPORTE ALTERNATIVO (NEXO)</span> por demoras críticas en línea.
+                        </p>
+                    </div>
+                )
+            });
+        }
+
         recentReports.forEach(report => {
             baseSlides.push({
                 id: `intel-${report.id}`,
-                icon: 'fas fa-satellite-dish',
-                iconColor: 'text-purple-300',
+                icon: isCriticalCongestion ? 'fas fa-exclamation-circle' : 'fas fa-satellite-dish',
+                iconColor: isCriticalCongestion ? 'text-red-500 animate-pulse' : 'text-purple-300',
                 title: 'Intel de Campo Reciente',
                 content: (
                     <div className="h-full w-full flex flex-col items-center justify-center">
-                        <div className="text-center">
-                            <p className="text-lg font-bold text-white text-glow-pulse">{REPORT_TYPE_TRANSLATIONS[report.type] || report.type}</p>
+                        <div className="text-center relative">
+                            {isCriticalCongestion && (
+                                <i className="fas fa-exclamation-triangle text-red-500 absolute -top-4 -right-4 animate-pulse text-xs"></i>
+                            )}
+                            <p className={`text-lg font-bold text-white ${isCriticalCongestion ? 'text-red-400' : 'text-glow-pulse'}`}>
+                                {REPORT_TYPE_TRANSLATIONS[report.type] || report.type}
+                            </p>
                             <p className="text-sm text-slate-200 px-2 leading-tight italic mt-1">"{truncateText(report.description, 70)}"</p>
                         </div>
                         <div className="flex justify-between w-full text-xs text-slate-400 px-2 mt-auto">
@@ -166,7 +192,6 @@ const MissionBriefingCarousel: React.FC<MissionBriefingCarouselProps> = ({ data,
   };
 
   useEffect(() => {
-    // Reset slide index when slides change to prevent out-of-bounds error
     setCurrentSlide(0);
     if(slides.length > 1) {
         startRotation();

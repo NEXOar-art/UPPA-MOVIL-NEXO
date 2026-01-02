@@ -1,63 +1,65 @@
 
 import React from 'react';
-import { GlobalChatMessage, UserProfile } from '../types';
-import MicromobilityChatWindow from './MicromobilityChatWindow';
 
 interface MicromobilityChatProps {
   isOpen: boolean;
   onToggle: () => void;
   hasAvailableServices: boolean;
   onOpenChat: () => void;
+  onOpenRegistration: () => void;
 }
 
 const MicromobilityChat: React.FC<MicromobilityChatProps> = ({
-  isOpen,
-  onToggle,
   hasAvailableServices,
   onOpenChat,
+  onOpenRegistration,
 }) => {
-  const availabilityColor = hasAvailableServices ? 'bg-cyan-500/80 text-cyan-100 border-cyan-400' : 'bg-red-500/80 text-red-100 border-red-400';
-  const availabilityPulse = hasAvailableServices ? 'animate-pulse' : '';
-
+  // Logic updated to show GREEN when pilots are present as requested
+  const availabilityColor = hasAvailableServices 
+    ? 'bg-green-500/20 text-green-300 border-green-500/40 shadow-[0_0_10px_rgba(34,197,94,0.15)]' 
+    : 'bg-red-500/10 text-red-400 border-red-500/20';
+  
   return (
-    <div className="ps-card p-4">
-      <button
-        onClick={onToggle}
-        className="w-full flex justify-between items-center text-left"
-        aria-expanded={isOpen}
-      >
-        <div className="flex items-center space-x-3">
-          <div className="flex items-center">
-            <i className="fas fa-motorcycle text-xl text-sky-300 -mr-2 z-10"></i>
-            <i className="fas fa-car-side text-2xl text-indigo-300"></i>
-          </div>
-          <h3 className="text-lg font-bold text-blue-300 font-orbitron">Nexo Micromovilidad</h3>
-        </div>
-        <div className="flex items-center space-x-3">
-            <div
-                className={`flex items-center space-x-2 px-2 py-1 rounded-full text-xs font-semibold border ${availabilityColor}`}
-                title={hasAvailableServices ? "Hay servicios de micromovilidad disponibles para contacto" : "No hay servicios de micromovilidad disponibles en este momento"}
-            >
-                <div className={`w-2 h-2 rounded-full ${availabilityPulse} ${hasAvailableServices ? 'bg-cyan-300' : 'bg-red-400'}`}></div>
-                <span>{hasAvailableServices ? "Disponibles" : "Sin Servicios"}</span>
+    <div className="bg-slate-900/60 p-4 rounded-xl border border-white/10 shadow-lg space-y-4">
+        {/* Cabecera de Estado */}
+        <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <i className={`fas fa-satellite-dish ${hasAvailableServices ? 'text-green-400' : 'text-slate-500'} animate-pulse text-sm`}></i>
+                    <span className="text-[10px] font-bold font-orbitron tracking-widest text-slate-300 uppercase">Nexo Central</span>
+                </div>
+                <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[9px] font-black border transition-all duration-500 ${availabilityColor}`}>
+                    <div className={`w-1.5 h-1.5 rounded-full ${hasAvailableServices ? 'bg-green-400 animate-pulse' : 'bg-red-500'}`}></div>
+                    {hasAvailableServices ? "CON PILOTOS" : "SIN PILOTOS"}
+                </div>
             </div>
-          <i className={`fas fa-chevron-down text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}></i>
         </div>
-      </button>
 
-      {isOpen && (
-        <div className="mt-4 pt-4 border-t border-blue-500/20 text-center">
-          <p className="text-sm text-slate-400 mb-4">
-            Conéctate con otros pilotos y pasajeros en tiempo real para coordinar viajes y compartir información de la zona.
-          </p>
-          <button
-            onClick={onOpenChat}
-            className="w-full ps-button active py-3 text-base ps-button-glow-effect"
-          >
-            <i className="fas fa-satellite-dish mr-2"></i> Entrar al Nexo de Comunicación
-          </button>
+        {/* Descripción */}
+        <div className="space-y-1">
+            <h4 className="text-xs font-bold text-white uppercase tracking-tight">Red de Despliegue Urbano</h4>
+            <p className="text-[11px] text-slate-400 leading-relaxed italic border-l-2 border-cyan-500/30 pl-3">
+                Canal táctico para solicitar transporte o registrarse como piloto de la red.
+            </p>
         </div>
-      )}
+
+        {/* Acciones duales */}
+        <div className="grid grid-cols-1 gap-2 pt-2">
+            <button
+                onClick={onOpenChat}
+                className="ps-button active py-2.5 text-[10px] flex items-center justify-center gap-2 group transition-all"
+            >
+                <i className="fas fa-comments text-xs group-hover:scale-110"></i>
+                ABRIR NEXO DE CHAT
+            </button>
+            <button
+                onClick={onOpenRegistration}
+                className="w-full bg-slate-800/80 hover:bg-slate-700 text-cyan-400 border border-cyan-500/30 rounded-lg py-2.5 text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all hover:border-cyan-400"
+            >
+                <i className="fas fa-id-badge text-xs"></i>
+                UNIRSE COMO PILOTO
+            </button>
+        </div>
     </div>
   );
 };

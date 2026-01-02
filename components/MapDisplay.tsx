@@ -1,11 +1,8 @@
 
-
 import React, { useEffect, useRef, useMemo } from 'react';
 import L from 'leaflet';
 import { Bus, BusStop, Coordinates, Report, RouteResult, MicromobilityService, MicromobilityServiceType } from '../types';
 import { MICROMOBILITY_SERVICE_ICONS } from '../constants';
-
-// FIX: Removed unused 'leaflet.heat' import and its module augmentation. This was causing a build error, and the heatmap feature was not implemented.
 
 // Custom Icon definitions
 const createUserLocationIcon = () => {
@@ -126,7 +123,6 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
   // Update bus markers
   useEffect(() => {
     busLayerRef.current.clearLayers();
-    // FIX: Explicitly type `bus` as `Bus` because `Object.values` can be inferred as `unknown[]`.
     Object.values(buses).forEach((bus: Bus) => {
       const isSelected = bus.id === selectedBusLineId;
       const marker = L.marker([bus.currentLocation.lat, bus.currentLocation.lng], {
@@ -189,22 +185,34 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
     const stops = selectedBusLineId ? busStops[selectedBusLineId] || [] : [];
     stops.forEach(stop => {
       const stopMarker = L.circleMarker([stop.location.lat, stop.location.lng], {
-        radius: 5,
+        radius: 6,
         fillColor: 'var(--ps-cyan)',
         color: '#FFF',
-        weight: 1,
+        weight: 1.5,
         opacity: 1,
-        fillOpacity: 0.8
+        fillOpacity: 0.9
       }).addTo(stopLayerRef.current);
       
-      stopMarker.on('click', () => onNavigateToStopLocation(stop.location));
-
+      const popupId = `stop-nav-btn-${stop.id}`;
       stopMarker.bindPopup(`
          <div class="p-1">
             <h4 class="font-bold text-white font-orbitron text-sm">${stop.name}</h4>
-            <p class="text-xs text-slate-300 mt-1">Click en el ícono para trazar ruta aquí.</p>
+            <p class="text-[10px] text-slate-400 mt-1 leading-tight">Punto de control de la red.</p>
+            <button id="${popupId}" class="w-full mt-2 ps-button active text-[10px] py-1.5 flex items-center justify-center gap-2">
+                <i class="fas fa-location-arrow"></i> TRAZAR RUTA (GPS)
+            </button>
          </div>
-      `);
+      `, { closeButton: false });
+
+      stopMarker.on('popupopen', () => {
+          const btn = document.getElementById(popupId);
+          if (btn) {
+              btn.onclick = () => {
+                  onNavigateToStopLocation(stop.location);
+                  stopMarker.closePopup();
+              };
+          }
+      });
     });
   }, [selectedBusLineId, busStops, onNavigateToStopLocation]);
 
