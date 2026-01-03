@@ -4,7 +4,7 @@ import {
   Bus, BusStop, Report, ChatMessage, UserProfile, Coordinates, ReportType, RouteResult, TravelMode, UppyChatMessage, MicromobilityService, GlobalChatMessage, RatingHistoryEntry, Maneuver, ScheduleDetail, MicromobilityServiceType
 } from './types';
 import {
-  MOCK_BUS_LINES, MOCK_BUS_STOPS_DATA, DEFAULT_MAP_CENTER, REPORT_TYPE_TRANSLATIONS, BUS_LINE_ADDITIONAL_INFO, DEFAULT_MAP_ZOOM, UPPA_MERCADO_PAGO_ALIAS, UPPA_CRYPTO_ADDRESS_EXAMPLE
+  MOCK_BUS_LINES, MOCK_BUS_STOPS_DATA, DEFAULT_MAP_CENTER, REPORT_TYPE_TRANSLATIONS, BUS_LINE_ADDITIONAL_INFO, DEFAULT_MAP_ZOOM, UPPA_MERCADO_PAGO_ALIAS, UPPA_CRYPTO_ADDRESS_EXAMPLE, MOCK_COMMUNITY_PILOTS
 } from './constants';
 import { useSettings } from './contexts/SettingsContext';
 
@@ -46,8 +46,8 @@ import { audioService } from './services/audioService';
 
 const ITEMS_PER_PAGE_BUSES = 3;
 
-// No simulation: Starting with empty pilots list
-const INITIAL_PILOTS: MicromobilityService[] = [];
+// Inicializamos con pilotos de la comunidad simulados para visibilidad inmediata
+const INITIAL_PILOTS: MicromobilityService[] = MOCK_COMMUNITY_PILOTS;
 
 const App: React.FC = () => {
     // STATE
@@ -290,11 +290,12 @@ const App: React.FC = () => {
         audioService.playHighlightSound();
     }, [userLocation, handleSetRoute, showNotification, t]);
 
-    // REAL USER COUNT: Based on registered pilots + current user
+    // REAL USER COUNT: Based on mock community + registered pilots + current user
     const realConnectedUsers = micromobilityServices.length + 1;
 
-    // HUB STATUS LOGIC: Should show "CON PILOTOS" if ANY pilot is active in the community
-    const hasAnyPilotActive = micromobilityServices.some(s => s.isActive && s.isAvailable && !s.isOccupied);
+    // HUB STATUS LOGIC: Should show exact pilot count instead of just binary status
+    const activePilotsCount = micromobilityServices.filter(s => s.isActive && s.isAvailable && !s.isOccupied).length;
+    const hasAnyPilotActive = activePilotsCount > 0;
 
     useEffect(() => {
         document.body.className = `theme-${theme}`;
@@ -391,6 +392,7 @@ const App: React.FC = () => {
                                     isOpen={true}
                                     onToggle={() => setIsMicromobilitySectionOpen(!isMicromobilitySectionOpen)}
                                     hasAvailableServices={hasAnyPilotActive}
+                                    activePilotsCount={activePilotsCount}
                                     onOpenChat={() => setIsMicromobilityChatOpen(true)}
                                     onOpenRegistration={() => setIsMicromobilityRegistrationOpen(true)}
                                 />

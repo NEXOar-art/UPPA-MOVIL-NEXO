@@ -5,12 +5,14 @@ interface MicromobilityChatProps {
   isOpen: boolean;
   onToggle: () => void;
   hasAvailableServices: boolean;
+  activePilotsCount: number;
   onOpenChat: () => void;
   onOpenRegistration: () => void;
 }
 
 const MicromobilityChat: React.FC<MicromobilityChatProps> = ({
   hasAvailableServices,
+  activePilotsCount,
   onOpenChat,
   onOpenRegistration,
 }) => {
@@ -30,7 +32,7 @@ const MicromobilityChat: React.FC<MicromobilityChatProps> = ({
                 </div>
                 <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[9px] font-black border transition-all duration-500 ${availabilityColor}`}>
                     <div className={`w-1.5 h-1.5 rounded-full ${hasAvailableServices ? 'bg-green-400 animate-pulse' : 'bg-red-500'}`}></div>
-                    {hasAvailableServices ? "CON PILOTOS" : "SIN PILOTOS"}
+                    {hasAvailableServices ? `${activePilotsCount} PILOTOS ACTIVOS` : "SIN PILOTOS"}
                 </div>
             </div>
         </div>

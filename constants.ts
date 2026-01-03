@@ -1,5 +1,5 @@
 
-import { ReportType, Bus, MicromobilityServiceType, Coordinates, BusStop, BusLineDetails, BadgeId } from './types';
+import { ReportType, Bus, MicromobilityServiceType, Coordinates, BusStop, BusLineDetails, BadgeId, MicromobilityService } from './types';
 
 
 export const API_KEY_ERROR_MESSAGE = "La variable de entorno API_KEY para Gemini no está configurada. Por favor, asegúrese de que esté configurada.";
@@ -30,6 +30,96 @@ export const MOCK_BUS_LINES: Record<string, Bus> = {
   "LINEA_152": { id: "LINEA_152", lineName: "Línea 152", description: "La Boca - Olivos (x Parque)", statusEvents: [], color: "bg-green-500", currentLocation: BA_RECOLETA },
   "LINEA_39": { id: "LINEA_39", lineName: "Línea 39", description: "Barracas - Chacarita", statusEvents: [], color: "bg-yellow-500", currentLocation: BA_PALERMO_SOHO },
 };
+
+export const MOCK_COMMUNITY_PILOTS: MicromobilityService[] = [
+  {
+    id: "pilot-community-1",
+    providerId: "user-ext-1",
+    providerName: "Capitán Moto",
+    serviceName: "Relámpago Campana",
+    type: MicromobilityServiceType.Moto,
+    vehicleModel: "Honda GLH 150",
+    vehicleColor: "Negro Mate",
+    whatsapp: "1198765432",
+    location: { lat: -34.1685, lng: -58.9580 },
+    address: "Cerca de Estación Campana",
+    petsAllowed: true,
+    subscriptionDurationHours: 5,
+    isActive: true,
+    isAvailable: true,
+    isOccupied: false,
+    isPendingPayment: false,
+    rating: 4.9,
+    numberOfRatings: 42,
+    totalRatingPoints: 205,
+    completedTrips: 88,
+    avgPunctuality: 4.8,
+    avgSafety: 5.0,
+    avgCleanliness: 4.7,
+    avgKindness: 5.0,
+    ecoScore: 85,
+    ratingHistory: [],
+    subscriptionExpiryTimestamp: Date.now() + 7200000
+  },
+  {
+    id: "pilot-community-2",
+    providerId: "user-ext-2",
+    providerName: "Zárate Express",
+    serviceName: "Remis Central",
+    type: MicromobilityServiceType.Remis,
+    vehicleModel: "Toyota Etios",
+    vehicleColor: "Gris Plata",
+    whatsapp: "1123456789",
+    location: { lat: -34.0950, lng: -59.0285 },
+    address: "Plaza Mitre, Zárate",
+    petsAllowed: false,
+    subscriptionDurationHours: 5,
+    isActive: true,
+    isAvailable: true,
+    isOccupied: false,
+    isPendingPayment: false,
+    rating: 4.7,
+    numberOfRatings: 28,
+    totalRatingPoints: 131,
+    completedTrips: 54,
+    avgPunctuality: 4.5,
+    avgSafety: 4.9,
+    avgCleanliness: 4.8,
+    avgKindness: 4.6,
+    ecoScore: 78,
+    ratingHistory: [],
+    subscriptionExpiryTimestamp: Date.now() + 10800000
+  },
+  {
+    id: "pilot-community-3",
+    providerId: "user-ext-3",
+    providerName: "Lucho Rider",
+    serviceName: "Nexo Moto",
+    type: MicromobilityServiceType.Moto,
+    vehicleModel: "Yamaha FZ",
+    vehicleColor: "Azul Eléctrico",
+    whatsapp: "1155443322",
+    location: { lat: -34.1800, lng: -58.9450 },
+    address: "Av. Varela y Bertolini",
+    petsAllowed: false,
+    subscriptionDurationHours: 3,
+    isActive: true,
+    isAvailable: true,
+    isOccupied: true,
+    isPendingPayment: false,
+    rating: 5.0,
+    numberOfRatings: 15,
+    totalRatingPoints: 75,
+    completedTrips: 30,
+    avgPunctuality: 5.0,
+    avgSafety: 5.0,
+    avgCleanliness: 5.0,
+    avgKindness: 5.0,
+    ecoScore: 92,
+    ratingHistory: [],
+    subscriptionExpiryTimestamp: Date.now() + 3600000
+  }
+];
 
 export const BUS_LINE_ADDITIONAL_INFO: Record<string, BusLineDetails> = {
   "LINEA_228CB": {
