@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -676,6 +677,25 @@
         color: var(--ps-cyan);
         filter: drop-shadow(0 0 6px var(--ps-cyan));
         animation: pulse-glow 2s infinite alternate;
+    }
+
+    /* Nueva Animación: Destello de Atención (Radar Focal) */
+    @keyframes destello-focal {
+      0%, 100% { 
+        color: #94a3b8; 
+        transform: scale(1); 
+        filter: drop-shadow(0 0 0px transparent);
+        background-color: transparent;
+      }
+      50% { 
+        color: #22d3ee; 
+        transform: scale(1.25); 
+        filter: drop-shadow(0 0 12px #22d3ee);
+        background-color: rgba(34, 211, 238, 0.15);
+      }
+    }
+    .animate-destello-focal {
+      animation: destello-focal 1.8s infinite ease-in-out;
     }
   </style>
 <script type="importmap">

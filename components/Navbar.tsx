@@ -78,7 +78,11 @@ const Navbar: React.FC<NavbarProps> = ({
       </div>
 
       <div className="flex items-center gap-2 md:gap-4">
-        <button onClick={onFocusUserLocation} className="p-2.5 text-slate-400 hover:text-cyan-400 hover:bg-white/5 rounded-lg transition-all" title="Mi Ubicación">
+        <button 
+          onClick={onFocusUserLocation} 
+          className="p-2.5 text-slate-400 hover:text-cyan-400 hover:bg-white/5 rounded-lg transition-all animate-destello-focal" 
+          title="Fijar Mi Ubicación Actual"
+        >
           <i className="fas fa-crosshairs"></i>
         </button>
         <button onClick={onToggleMicromobilityModal} className="p-2.5 text-slate-400 hover:text-fuchsia-400 hover:bg-white/5 rounded-lg transition-all" title="Micromovilidad">
