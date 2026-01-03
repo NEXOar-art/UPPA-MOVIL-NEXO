@@ -338,6 +338,7 @@ const App: React.FC = () => {
                 onLogout={handleLogout}
                 onOpenRanking={() => {}}
                 connectedUsersCount={realConnectedUsers}
+                activePilotsCount={activePilotsCount}
                 onFocusUserLocation={() => userLocation && setMapCenter(userLocation)}
                 onToggleMicromobilityModal={() => setIsMicromobilityChatOpen(true)}
                 onToggleDonationModal={() => setIsDonationModalOpen(true)}

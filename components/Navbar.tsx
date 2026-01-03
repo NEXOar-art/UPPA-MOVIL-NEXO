@@ -11,6 +11,7 @@ interface NavbarProps {
   onLogout: () => void;
   onOpenRanking: () => void;
   connectedUsersCount: number;
+  activePilotsCount: number;
   onFocusUserLocation: () => void;
   onToggleMicromobilityModal: () => void;
   onToggleDonationModal: () => void;
@@ -45,6 +46,7 @@ const Navbar: React.FC<NavbarProps> = ({
   currentUser, 
   onLogout, 
   connectedUsersCount, 
+  activePilotsCount,
   onFocusUserLocation, 
   onToggleMicromobilityModal, 
   onToggleDonationModal, 
@@ -68,12 +70,27 @@ const Navbar: React.FC<NavbarProps> = ({
         </div>
       </div>
 
-      <div className="hidden md:flex items-center gap-8 bg-slate-800/40 px-6 py-2 rounded-full border border-white/5">
-        <div className="flex items-center gap-2" title="Ciudadanos en línea">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            <span className="text-xs font-mono text-slate-300">{connectedUsersCount} PILOTOS</span>
+      {/* Indicadores de Comunidad en tiempo real */}
+      <div className="hidden lg:flex items-center gap-6 bg-slate-800/40 px-5 py-2 rounded-full border border-white/5 shadow-inner">
+        <div className="flex items-center gap-2 group cursor-help" title="Ciudadanos sincronizados con la red">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_5px_rgba(34,197,94,0.8)]"></div>
+            <div className="flex flex-col">
+                <span className="text-[10px] font-black text-white leading-none">{connectedUsersCount}</span>
+                <span className="text-[8px] font-orbitron text-slate-500 tracking-tighter uppercase">CIUDADANOS</span>
+            </div>
         </div>
-        <div className="w-px h-4 bg-white/10"></div>
+        
+        <div className="w-px h-6 bg-white/10"></div>
+        
+        <div className="flex items-center gap-2 group cursor-help" title="Servicios de transporte listos para despliegue">
+            <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_5px_rgba(34,211,238,0.8)]"></div>
+            <div className="flex flex-col">
+                <span className="text-[10px] font-black text-white leading-none">{activePilotsCount}</span>
+                <span className="text-[8px] font-orbitron text-slate-500 tracking-tighter uppercase">UNIDADES</span>
+            </div>
+        </div>
+
+        <div className="w-px h-6 bg-white/10"></div>
         <DateTimeDisplay />
       </div>
 
