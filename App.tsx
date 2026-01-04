@@ -45,7 +45,7 @@ const App: React.FC = () => {
     const [reports, setReports] = useState<Report[]>([]);
     const [globalChatMessages, setGlobalChatMessages] = useState<GlobalChatMessage[]>([]);
     
-    // FIX: Se elimina MOCK_COMMUNITY_PILOTS para solo incluir pilotos reales que se postulan
+    // Solo incluir pilotos reales que se postulan
     const [micromobilityServices, setMicromobilityServices] = useState<MicromobilityService[]>([]);
     
     // MULTIUSER PRESENCE STATE
@@ -147,7 +147,6 @@ const App: React.FC = () => {
 
     useEffect(() => {
         const shared = syncService.getSharedPilots();
-        // Solo cargar si hay pilotos reales registrados en localStorage/Broadcast
         if (shared.length > 0) {
             setMicromobilityServices(shared);
         }
@@ -191,7 +190,7 @@ const App: React.FC = () => {
         
         const price = MICROMOBILITY_PRICING[formData.type as MicromobilityServiceType][formData.subscriptionDurationHours as number];
         if (currentUser.tokens < price) {
-            showNotification("Fichas insuficientes para desplegar esta misión.", "error");
+            showNotification("Fichas insuficientes para registrar esta unidad.", "error");
             return;
         }
 
@@ -209,11 +208,11 @@ const App: React.FC = () => {
             petsAllowed: formData.petsAllowed,
             subscriptionDurationHours: formData.subscriptionDurationHours,
             
-            // FIX: Activamos directamente para el demo para asegurar que el usuario vea su unidad al registrarla
-            isActive: true, 
-            isAvailable: true,
+            // Se registra como inactivo y pendiente de pago
+            isActive: false, 
+            isAvailable: false,
             isOccupied: false,
-            isPendingPayment: false, 
+            isPendingPayment: true, 
             
             rating: 5.0,
             numberOfRatings: 0,
@@ -225,7 +224,7 @@ const App: React.FC = () => {
             avgKindness: 5.0,
             ecoScore: 90,
             ratingHistory: [],
-            subscriptionExpiryTimestamp: Date.now() + (formData.subscriptionDurationHours * 3600000)
+            subscriptionExpiryTimestamp: null
         };
 
         setMicromobilityServices(prev => [newService, ...prev]);
@@ -234,7 +233,7 @@ const App: React.FC = () => {
         
         setIsMicromobilityRegistrationOpen(false);
         setIsMicromobilityChatOpen(true); 
-        showNotification(`¡Misión Iniciada! Tu unidad ha sido desplegada en la red.`, "success");
+        showNotification(`Unidad registrada. Procede con el abono para activarla.`, "info");
         audioService.playConfirmationSound();
     };
 
@@ -243,13 +242,13 @@ const App: React.FC = () => {
         setMicromobilityServices(prev => prev.map(s => {
             if (s.id === serviceId) {
                 const expiry = Date.now() + (s.subscriptionDurationHours * 3600000);
-                const updated = { ...s, isPendingPayment: false, isActive: true, subscriptionExpiryTimestamp: expiry };
+                const updated = { ...s, isPendingPayment: false, isActive: true, isAvailable: true, subscriptionExpiryTimestamp: expiry };
                 syncService.broadcast(SyncEventType.PILOT_UPDATED, updated, currentUser.id);
                 return updated;
             }
             return s;
         }));
-        showNotification("¡Misión Confirmada!", "success");
+        showNotification("¡Unidad activada y disponible!", "success");
         audioService.playHighlightSound();
     };
 
