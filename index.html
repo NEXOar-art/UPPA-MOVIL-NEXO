@@ -12,8 +12,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Inter:wght@400;500;600;700&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <!-- Leaflet MarkerCluster CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <!-- Leaflet MarkerCluster JS -->
+  <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
   <!-- Heatmap.js & Leaflet-Heat Plugin -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/heatmap.js/2.0.2/heatmap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
@@ -31,6 +36,18 @@
       --ps-border: rgba(0, 191, 255, 0.3);
       --ps-text: #e0e8f0;
       --ps-text-dim: #8c9bb6;
+    }
+
+    /* Leaflet Cluster Override for Cyberpunk Theme */
+    .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large {
+        background-color: rgba(0, 255, 255, 0.2);
+    }
+    .marker-cluster-small div, .marker-cluster-medium div, .marker-cluster-large div {
+        background-color: rgba(0, 255, 255, 0.6);
+        color: white;
+        font-family: 'Orbitron', sans-serif;
+        font-weight: 900;
+        box-shadow: 0 0 10px var(--ps-cyan);
     }
 
     /* Light Theme */

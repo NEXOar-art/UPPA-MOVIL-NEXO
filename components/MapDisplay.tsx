@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import { Bus, BusStop, Coordinates, Report, RouteResult, MicromobilityService, MicromobilityServiceType } from '../types';
 import { MICROMOBILITY_SERVICE_ICONS } from '../constants';
@@ -57,7 +57,6 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
   zoom,
   buses,
   busStops,
-  reports,
   micromobilityServices,
   selectedBusLineId,
   userLocation,
@@ -70,7 +69,10 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
   const busLayerRef = useRef(L.layerGroup());
-  const stopLayerRef = useRef(L.layerGroup());
+  
+  // FIX: Implementación de Marker Clustering para paradas
+  const stopClusterRef = useRef<any>(null);
+  
   const userLocationLayerRef = useRef(L.layerGroup());
   const routeLayerRef = useRef(L.layerGroup());
   const micromobilityLayerRef = useRef(L.layerGroup());
@@ -91,8 +93,18 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
         maxZoom: 20
       }).addTo(map);
 
+      // Initialize Cluster Group for stops
+      if ((L as any).markerClusterGroup) {
+          stopClusterRef.current = (L as any).markerClusterGroup({
+              showCoverageOnHover: false,
+              spiderfyOnMaxZoom: true,
+              disableClusteringAtZoom: 17,
+              maxClusterRadius: 40
+          });
+          stopClusterRef.current.addTo(map);
+      }
+
       busLayerRef.current.addTo(map);
-      stopLayerRef.current.addTo(map);
       userLocationLayerRef.current.addTo(map);
       routeLayerRef.current.addTo(map);
       micromobilityLayerRef.current.addTo(map);
@@ -137,10 +149,6 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
               <i class="fas fa-traffic-light text-green-400 w-4 text-center mr-1.5"></i>
               Estado: <span class="font-semibold ml-1">En Movimiento</span>
             </p>
-            <p class="flex items-center text-slate-300">
-              <i class="fas fa-clock w-4 text-center mr-1.5"></i>
-              Actualizado: <span class="font-semibold ml-1">Ahora</span>
-            </p>
           </div>
         </div>
       `);
@@ -163,9 +171,8 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
              <div class="p-1">
                  <h4 class="font-bold text-white font-orbitron">${service.serviceName}</h4>
                  <p class="text-xs text-slate-300">${service.providerName} (${service.type})</p>
-                 <p class="text-xs text-slate-400 mt-1">${service.vehicleModel}</p>
-                 <button id="request-btn-${service.id}" class="w-full mt-2 ps-button active text-xs py-1 px-3 ${isRequestInProgress ? 'opacity-50 cursor-not-allowed' : ''}" ${isRequestInProgress ? 'disabled' : ''}>
-                     ${isRequestInProgress ? 'Solicitud en curso...' : 'Solicitar'}
+                 <button id="request-btn-${service.id}" class="w-full mt-2 ps-button active text-xs py-1 px-3">
+                     Solicitar
                  </button>
              </div>
          `;
@@ -179,10 +186,13 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
       });
   }, [micromobilityServices, onInitiateRequest, serviceToConfirm]);
 
-  // Update bus stops
+  // FIX: Optimized bus stops update using CLUSTERING
   useEffect(() => {
-    stopLayerRef.current.clearLayers();
+    if (!stopClusterRef.current) return;
+    stopClusterRef.current.clearLayers();
+    
     const stops = selectedBusLineId ? busStops[selectedBusLineId] || [] : [];
+    
     stops.forEach(stop => {
       const stopMarker = L.circleMarker([stop.location.lat, stop.location.lng], {
         radius: 6,
@@ -191,13 +201,12 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
         weight: 1.5,
         opacity: 1,
         fillOpacity: 0.9
-      }).addTo(stopLayerRef.current);
+      });
       
       const popupId = `stop-nav-btn-${stop.id}`;
       stopMarker.bindPopup(`
          <div class="p-1">
             <h4 class="font-bold text-white font-orbitron text-sm">${stop.name}</h4>
-            <p class="text-[10px] text-slate-400 mt-1 leading-tight">Punto de control de la red.</p>
             <button id="${popupId}" class="w-full mt-2 ps-button active text-[10px] py-1.5 flex items-center justify-center gap-2">
                 <i class="fas fa-location-arrow"></i> TRAZAR RUTA (GPS)
             </button>
@@ -213,6 +222,8 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
               };
           }
       });
+      
+      stopClusterRef.current.addLayer(stopMarker);
     });
   }, [selectedBusLineId, busStops, onNavigateToStopLocation]);
 
@@ -228,7 +239,6 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
         })
       }).addTo(routeLayerRef.current);
       
-      // Add a glow effect using a thicker, less opaque line underneath
       L.geoJSON(routeResult.geometry, {
         style: () => ({
           color: 'var(--ps-cyan)',
@@ -257,7 +267,6 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
               onClick={handleZoomIn}
               className="ps-button w-10 h-10 flex items-center justify-center"
               aria-label="Acercar mapa"
-              title="Acercar"
             >
               <i className="fas fa-plus"></i>
             </button>
@@ -265,7 +274,6 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
               onClick={handleZoomOut}
               className="ps-button w-10 h-10 flex items-center justify-center"
               aria-label="Alejar mapa"
-              title="Alejar"
             >
               <i className="fas fa-minus"></i>
             </button>

@@ -1,15 +1,10 @@
+
 import { GoogleGenAI, GenerateContentResponse, Tool, Type } from "@google/genai";
 import { API_KEY_ERROR_MESSAGE, GEMINI_TEXT_MODEL, GEMINI_CHAT_DRAFT_MODEL } from '../constants';
 import { RatingHistoryEntry, UppyChatMessage } from '../types';
 
-const API_KEY = process.env.API_KEY;
-
-let ai: GoogleGenAI | null = null;
-if (API_KEY) {
-  ai = new GoogleGenAI({ apiKey: API_KEY });
-} else {
-  console.error(API_KEY_ERROR_MESSAGE);
-}
+// Fix: Always initialize GoogleGenAI with a named parameter using process.env.API_KEY directly.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const tools: Tool[] = [
   {
@@ -48,11 +43,6 @@ const tools: Tool[] = [
 
 
 export const analyzeSentiment = async (text: string): Promise<'positive' | 'negative' | 'neutral' | 'unknown'> => {
-  if (!ai) {
-    console.warn("Gemini AI SDK not initialized due to missing API key. Sentiment analysis disabled.");
-    return 'unknown';
-  }
-
   const prompt = `Analiza el sentimiento del siguiente texto y clasifícalo como "positive", "negative", o "neutral". Responde solo con una de esas tres palabras. Texto: "${text}"`;
 
   try {
@@ -60,9 +50,10 @@ export const analyzeSentiment = async (text: string): Promise<'positive' | 'nega
         model: GEMINI_TEXT_MODEL,
         contents: prompt,
     });
+    // Fix: response.text is a property, not a function.
     const resultText = response.text.trim().toLowerCase();
     if (resultText === 'positive' || resultText === 'negative' || resultText === 'neutral') {
-      return resultText;
+      return resultText as 'positive' | 'negative' | 'neutral';
     }
     console.warn(`Unexpected sentiment analysis response: ${resultText}`);
     return 'unknown';
@@ -115,12 +106,8 @@ export const getUppyResponse = async (
   systemInstruction: string,
   history: any[]
 ): Promise<GenerateContentResponse> => {
-  if (!ai) {
-    throw new Error("El asistente IA no está disponible debido a un problema de configuración (clave API).");
-  }
-
   try {
-    // FIX: Moved `systemInstruction`, `tools`, and `temperature` into the `config` object to align with the Gemini API guidelines.
+    // Fix: use ai.models.generateContent to query GenAI with model and prompt.
     const response: GenerateContentResponse = await ai.models.generateContent({
         model: GEMINI_TEXT_MODEL,
         contents: history,
@@ -139,11 +126,6 @@ export const getUppyResponse = async (
 
 
 export const draftChatResponse = async (originalText: string): Promise<string> => {
-  if (!ai) {
-    console.warn("Gemini AI SDK not initialized due to missing API key. AI drafting disabled.");
-    throw new Error("La función de borrador IA no está disponible debido a un problema de configuración (clave API).");
-  }
-
   const systemInstruction = `Eres un asistente de escritura para una app de chat sobre transporte público. 
   Tu tarea es mejorar el mensaje de un usuario. Puedes hacerlo más claro, conciso, amigable, o reformularlo si es una pregunta para obtener mejores respuestas.
   Considera el contexto de un chat rápido y en movimiento.
@@ -160,6 +142,7 @@ export const draftChatResponse = async (originalText: string): Promise<string> =
           temperature: 0.7, // Slightly more creative for drafting
         }
     });
+    // Fix: Access response.text as a property.
     return response.text.trim();
   } catch (error: any) {
     console.error("Error drafting chat response with Gemini:", error);
@@ -172,10 +155,6 @@ const summaryCache = new Map<string, { summary: string, timestamp: number }>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes TTL for cached summaries
 
 export const getAiRouteSummary = async (originAddress: string, destinationAddress: string, routeInfo: string, userReportsContext: string): Promise<string> => {
-    if (!ai) {
-        throw new Error("El asistente IA no está disponible debido a un problema de configuración (clave API).");
-    }
-
     const cacheKey = `${originAddress.toLowerCase().trim()}|${destinationAddress.toLowerCase().trim()}`;
     const cachedEntry = summaryCache.get(cacheKey);
 
@@ -209,6 +188,7 @@ export const getAiRouteSummary = async (originAddress: string, destinationAddres
                 temperature: 0.6,
             }
         });
+        // Fix: Access response.text as a property.
         const summary = response.text.trim();
         summaryCache.set(cacheKey, { summary, timestamp: Date.now() });
         return summary;
@@ -225,7 +205,7 @@ export const getAiRouteSummary = async (originAddress: string, destinationAddres
 };
 
 export const getReviewSummary = async (comments: string[]): Promise<string> => {
-    if (!ai || comments.length === 0) {
+    if (comments.length === 0) {
         return "No hay suficientes comentarios para generar un resumen.";
     }
 
@@ -244,6 +224,7 @@ export const getReviewSummary = async (comments: string[]): Promise<string> => {
                 temperature: 0.6,
             }
         });
+        // Fix: Access response.text as a property.
         return response.text.trim();
     } catch (error) {
         console.error("Error getting AI review summary:", error);
@@ -252,7 +233,7 @@ export const getReviewSummary = async (comments: string[]): Promise<string> => {
 };
 
 export const getPredictiveAlerts = async (reviews: RatingHistoryEntry[]): Promise<string> => {
-    if (!ai || reviews.length < 3) {
+    if (reviews.length < 3) {
         return "No hay suficientes datos para generar una alerta predictiva. Se necesita más feedback de la comunidad.";
     }
 
@@ -279,6 +260,7 @@ export const getPredictiveAlerts = async (reviews: RatingHistoryEntry[]): Promis
                 temperature: 0.7,
             }
         });
+        // Fix: Access response.text as a property.
         return response.text.trim();
     } catch (error) {
         console.error("Error getting AI predictive alert:", error);
